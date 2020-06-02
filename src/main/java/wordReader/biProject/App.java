@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.poi.hwpf.extractor.WordExtractor;
@@ -38,43 +39,73 @@ public class App
 {
 	static boolean debug = false ;  // 要印出訊息的時候就設定為true , 平常是關起來false狀態
 	
-    public static void main( String[] args )
+    public static void main( String[] args ) throws IOException
     {
-        System.out.println( "Hello World!" );
+    	// 歡迎訊息 並且會顯示 word取得路徑 以及excel產生路徑...等訊息
+    	helloMsg();
         
-        String filePathDocx = "/Users/liaoyushao/Downloads/testDobin.docx" ; 
-        String writePath = "/Users/liaoyushao/Downloads/PhinaExcel.xlsx" ;
-        
-        // 之後要設一個while loop 
-        // loop through file , read and get all word under that filePath
+        // 設一個while loop 
+        // loop through file , read and get all word(.docx) under that filePath
         // Store all the data in dataPojosList
-        DataPojo data = readWord2007Docx(filePathDocx); // 取得 word 裡面資料
-        List<DataPojo> dataPojosList = new ArrayList<>() ;
+    	List<DataPojo> dataPojos = returnAllWordData();
         
-        DataPojo tmpPojpoDataPojo = calculateExtraFieldsData(data) ; 
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
-        dataPojosList.add(tmpPojpoDataPojo) ;
+    	
+    	writeExcel(dataPojos);
+    }
+    
+    public static void helloMsg() throws IOException {
+        Properties props = new Properties();
+        props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
         
-        // 輸出 list 到 excel 
-        Workbook workbook = ExcelWriter.exportData(dataPojosList) ; // POI會幫我們處理所有格式上所需
-        // 取得workbook之後 寫檔
-        writeExcel(workbook, writePath);
-        
+        System.out.println( "Hi! " + props.getProperty("userName") );
+        System.out.println( "word 存放路徑 : " + props.getProperty("wordsPath") );
+        System.out.println( "excel 會存在: " + props.getProperty("writePath")  + "底下");
+    }
+    
+    public static List<DataPojo> returnAllWordData() throws IOException{
+    	
+    	List<DataPojo> stackList = new ArrayList<>() ;
+
+        Properties props = new Properties();
+        props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
+    	
+        // word 存放路徑
+    	String wordsPath = props.getProperty("wordsPath") ; 
+    	
+    	// 取得所有這路徑底下的 以.docx結尾之檔案
+    	FileFilter fileFilter = new FileFilter() ;
+    	File dir = new File(wordsPath) ;
+    	File[] files = dir.listFiles(fileFilter);
+    	if( files.length == 0 )
+    		System.out.println("No .docx files under path : " + wordsPath);
+    	else {
+    		for( File aFile: files ) {
+    			System.out.println("file : " + aFile.getName());
+    			// 取得 word 裡面資料 並處理一些計算的部分
+    			DataPojo readyDataPojo = calculateExtraFieldsData(  readWord2007Docx(wordsPath+aFile.getName()) ) ; 
+    			stackList.add(readyDataPojo) ;
+    		}	
+    	}
+    	
+    	return stackList ;
     }
     
     /**
      * 寫Excel檔案到指定路徑
      * @param workbook
      * @param writePath
+     * @throws IOException 
      */
-    public static void writeExcel(Workbook workbook, String writePath) {
+    public static void writeExcel(List<DataPojo> dataPojos) throws IOException {
+    	
+        Properties props = new Properties();
+        props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
+    	
+        // word 存放路徑
+    	String writePath = props.getProperty("writePath") ; 
+    	
     	try {
+    		Workbook workbook = ExcelWriter.exportData(dataPojos) ; // POI會幫我們處理所有格式上所需
             FileOutputStream out=new FileOutputStream(writePath); 
     		workbook.write(out);
     		System.out.println("建立Excel成功");

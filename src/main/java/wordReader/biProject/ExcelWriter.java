@@ -152,7 +152,8 @@ public class ExcelWriter {
 			  int nextIndex = 0 ;
 			  
  			  for( int i = rowCountFirst ; i < rowCountLast ; i++ ) {
-				
+ 				  
+ 				  
  				  if( getNameTime ) {
  					  Row row = sheet.getRow(i);
  				      if( row != null) {
@@ -192,8 +193,14 @@ public class ExcelWriter {
  	 				      }
  					  } // end if()
  					  else {
-						 CellRangeAddress cra = new CellRangeAddress(baseIndex,i,0,0) ;
-						 sheet.addMergedRegion(cra) ;
+ 						  try {
+ 							 CellRangeAddress cra = new CellRangeAddress(baseIndex,i,0,0) ;
+ 							 sheet.addMergedRegion(cra) ;
+ 						  } catch (Exception e) {
+ 							  System.out.println(e);
+ 							  System.out.println("在合併儲存格,範圍沒有包含2個以上的cells導致,當加班筆數少於一定數量會有這個例外,如果結果正確可以忽略");
+ 						  }
+ 						  
 						 baseIdnCell.setCellValue(idn);
  					  }
  				  }
