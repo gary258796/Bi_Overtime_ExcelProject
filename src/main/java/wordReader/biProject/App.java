@@ -1,92 +1,221 @@
 package wordReader.biProject;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.hwpf.HWPFDocument; 
-import org.apache.poi.hwpf.usermodel.Range; 
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
-import org.apache.poi.sl.usermodel.TableShape;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor; 
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
-import fr.opensagres.xdocreport.utils.StringEscapeUtils;
+
+import wordReader.biProject.cusError.ExcelException;
+import wordReader.biProject.cusError.StopProgramException;
+import wordReader.biProject.cusError.WordFileException;
+import wordReader.biProject.fileNameFilter.WordsFileFilter;
+import wordReader.biProject.model.DataPojo;
+import wordReader.biProject.model.PinkPojo;
+import wordReader.biProject.util.PropsHandler;
+import wordReader.biProject.util.Time;
 
 public class App 
 {
-	static boolean debug = false ;  // 要印出訊息的時候就設定為true , 平常是關起來false狀態
 	
-    public static void main( String[] args ) throws IOException
+	private List<DataPojo> dataPojos ; 
+	private List<PinkPojo> pinkPojos ; 
+	private HandlePink handlePink = new HandlePink() ;
+			
+    public void main() throws IOException, ParseException, StopProgramException, WordFileException, ConfigurationException
     {
     	// 歡迎訊息 並且會顯示 word取得路徑 以及excel產生路徑...等訊息
     	helloMsg();
-        
-        // 設一個while loop 
-        // loop through file , read and get all word(.docx) under that filePath
-        // Store all the data in dataPojosList
-    	List<DataPojo> dataPojos = returnAllWordData();
-        
+      
+    	changeProperties() ; 
     	
-    	writeExcel(dataPojos);
+    	try {
+    		// 取得加班單資料,並且計算完加班單裡面沒有的欄位資訊
+    		// 無法成功獲取的word會放入到指定路徑底下
+    		dataPojos = returnAllWordData();
+
+        	// 取得震旦雲原檔裡面,粉紅色row的每一筆資料(上/下班欄位至少有一個是有值的)
+    		pinkPojos = handlePink.handlePinkExcel();
+		} catch (IOException e) {
+			throw new IOException( e.getMessage() ) ;
+		} catch (StopProgramException e) {
+			throw new StopProgramException( e.getMessage() ) ;
+		} catch (ExcelException e) {	// 路徑底下沒有 .xls
+			System.out.println( e.getMessage() );
+		} finally {
+	    	if(CollectionUtils.isEmpty(pinkPojos) || pinkPojos.size() == 0 )
+	    		System.out.println("PinkPojos 為null或者大小為0,可能是因為這個excel粉紅色欄位index不是59.");
+		}
+
+    	// 將準備好的資料寫到 excel , Excel Writer 負責 呈現的部分
+    	finalProcess(pinkPojos, dataPojos);
+
+    	// 將DataPojo 裡面 , hasPhoto 為false的資料 送outlook mail給該位同仁
+
+    	sendMail(dataPojos) ;
+
+		System.out.println("程式結束.");
     }
     
-    public static void helloMsg() throws IOException {
-        Properties props = new Properties();
-        props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
+    
+    private void changeProperties() throws IOException, ConfigurationException {
+    	
+        BufferedReader consoleInput=new BufferedReader(new InputStreamReader(System.in));
+    	
+    	boolean change = false ; 
+        char yesNo ; 
+    	whileloop:
+    	while( true) {
+    		System.out.println("請問有需要更改以上任一資訊嗎？(Y/N)");
+    		yesNo = consoleInput.readLine().charAt(0);
+
+        	if( yesNo == 'Y' ) {
+        		change = true ; 
+        		break whileloop ;
+        	}
+        	else if( yesNo == 'N' ) {
+    			break whileloop ;
+    		}
+        	else 
+        		System.out.println("\n 你是故意的還是在靠北我？");
+    	}
+    	
+        int chooseNum ; 
+        changeloop:
+        while( change ) {
+        	System.out.println("需要修改哪個？");
+        	System.out.println("1. 信箱&密碼 2. 加班單Word存放路徑 3. 產出Excel路徑 "
+        			+ "4. 無法處理Word存放路徑 5. 通訊錄Excel路徑 6. 粉紅顏色(你應該不會用到,是給專業的屎用的) "
+        			+ "7. 查看現在狀態 8. 結束");
         
-        System.out.println( "Hi! " + props.getProperty("userName") );
-        System.out.println( "word 存放路徑 : " + props.getProperty("wordsPath") );
-        System.out.println( "excel 會存在: " + props.getProperty("writePath")  + "底下");
+        	chooseNum = Integer.parseInt(consoleInput.readLine()) ; 
+        	String inputString = "" ;
+        	switch (chooseNum) {
+
+				case 1:
+					System.out.print("請輸入信箱(空白並且按下Enter取消更改) : ");
+					String emailString = consoleInput.readLine();
+					System.out.print("請輸入密碼(空白並且按下Enter取消更改) : ");
+					String passWordString = consoleInput.readLine();
+					PropsHandler.setter("emailAccount", emailString);
+					PropsHandler.setter("emailPassWord", passWordString);
+					break;
+				case 2:
+					System.out.print("請輸入new加班單Word存放路徑(空白並且按下Enter取消更改): ");
+					inputString = consoleInput.readLine();
+					PropsHandler.setter("wordsPath", inputString);
+					break;
+				case 3:
+					System.out.print("請輸入new產出Excel存放路徑(空白並且按下Enter取消更改): ");
+					inputString = consoleInput.readLine();
+					PropsHandler.setter("writePath", inputString);
+					break;
+				case 4:
+					System.out.print("請輸入new無法處理Word存放路徑(空白並且按下Enter取消更改): ");
+					inputString = consoleInput.readLine();
+					PropsHandler.setter("errorWordsPath", inputString);
+					break;
+				case 5:
+					System.out.print("請輸入new通訊錄Excel路徑(空白並且按下Enter取消更改): ");
+					inputString = consoleInput.readLine();
+					PropsHandler.setter("contactPath", inputString);
+					break;
+				case 6:
+					System.out.print("請輸入new Pink Index(你調皮偷亂改後果很嚴重喔): ");
+					int inputInt = Integer.parseInt(consoleInput.readLine());
+					PropsHandler.setter("pinkValue", Integer.toString(inputInt));
+					break;
+				case 7:
+					helloMsg();
+					break;
+				case 8:
+					break changeloop;
+				default:
+					System.out.println("問號,你是有看到你選的這個選項??");
+					
+        	}
+        }
+
+		System.out.println("\n 產出Excel....");
     }
     
-    public static List<DataPojo> returnAllWordData() throws IOException{
+    
+    /**
+     * 歡迎訊息
+     * @throws IOException
+     */
+    public void helloMsg() throws IOException {
+        System.out.println( "Hi! " + PropsHandler.getter("userName") );
+        System.out.println( "信箱 : " + PropsHandler.getter("emailAccount") );
+        System.out.println( "密碼 : " + PropsHandler.getter("emailPassWord") );
+        System.out.println( "加班單word存放路徑  : " + PropsHandler.getter("wordsPath") );
+        System.out.println( "產出Excel會在 : " + PropsHandler.getter("writePath")  + "底下");
+        System.out.println( "無法處理的特殊(機車)Word會存到 : " + PropsHandler.getter("errorWordsPath")  + "底下");
+        System.out.println( "通訊錄Excel(如果加班單沒有截圖,尋找那個人的Email用) : " + PropsHandler.getter("contactPath")  + "底下");
+        System.out.println( PropsHandler.getter("pinkValue") + "\n" );
+    }
+
+    /**
+     * 取得加班單資料,並且計算完加班單裡面沒有的欄位資訊
+     * @return
+     * @throws IOException
+     * @throws WordFileException 
+     * @throws StopProgramException 
+     */
+    public List<DataPojo> returnAllWordData() throws IOException, WordFileException, StopProgramException{
     	
     	List<DataPojo> stackList = new ArrayList<>() ;
 
-        Properties props = new Properties();
-        props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
-    	
         // word 存放路徑
-    	String wordsPath = props.getProperty("wordsPath") ; 
+    	String wordsPath =  PropsHandler.getter("wordsPath") ;
     	
     	// 取得所有這路徑底下的 以.docx結尾之檔案
-    	FileFilter fileFilter = new FileFilter() ;
+    	WordsFileFilter fileFilter = new WordsFileFilter() ;
     	File dir = new File(wordsPath) ;
     	File[] files = dir.listFiles(fileFilter);
     	if( files.length == 0 )
-    		System.out.println("No .docx files under path : " + wordsPath);
+    		throw new StopProgramException("現在" + wordsPath + "底下沒有Word文件") ;
     	else {
     		for( File aFile: files ) {
-    			System.out.println("file : " + aFile.getName());
+    
     			// 取得 word 裡面資料 並處理一些計算的部分
-    			DataPojo readyDataPojo = calculateExtraFieldsData(  readWord2007Docx(wordsPath+aFile.getName()) ) ; 
-    			stackList.add(readyDataPojo) ;
+    			DataPojo readyDataPojo = WordReader.readWord2007Docx(wordsPath+aFile.getName()) ;
+    			// 如果不為null 初始化其中一些欄位（稍後靠PinkPojo資料對應輸入)
+    			if( readyDataPojo != null ) stackList.add(readyDataPojo) ;
+    			
     		}	
     	}
     	
+    	if( CollectionUtils.isNotEmpty( stackList ) ) {
+        	// 將 stackList 排序, 名稱 > 日期 
+            Collections.sort(stackList,
+            	      new Comparator<DataPojo>() {
+            	          public int compare(DataPojo o1, DataPojo o2) {
+            	          	
+            	          	if( o1.getName().compareTo(o2.getName()) == 0 ) {
+            	          		// 名稱相同  按照日期先後順序
+            	          		return o1.getStartDay().compareTo( o2.getStartDay()) ;
+            	          	}
+            	          	
+            	              return o1.getName().compareTo(o2.getName());
+            	          }
+            	      });
+    	}else {
+    		throw new StopProgramException( wordsPath + "底下沒有成功取得至少一筆Word資料!") ;
+    	}
+        
     	return stackList ;
     }
     
@@ -96,231 +225,166 @@ public class App
      * @param writePath
      * @throws IOException 
      */
-    public static void writeExcel(List<DataPojo> dataPojos) throws IOException {
-    	
-        Properties props = new Properties();
-        props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
+    public void writeExcel(List<DataPojo> dataPojos, List<PinkPojo> pinkPojos) throws IOException {
     	
         // word 存放路徑
-    	String writePath = props.getProperty("writePath") ; 
+    	String writePath =  PropsHandler.getter("writePath") ;
     	
     	try {
-    		Workbook workbook = ExcelWriter.exportData(dataPojos) ; // POI會幫我們處理所有格式上所需
+    		Workbook workbook = ExcelWriter.exportData(dataPojos, pinkPojos) ; // POI會幫我們處理所有格式上所需
             FileOutputStream out=new FileOutputStream(writePath); 
     		workbook.write(out);
-    		System.out.println("建立Excel成功");
+    		System.out.println("建立Excel成功\n");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
     }
     
     /**
-     * 處理 從word上面獲得資訊之後, 補齊原本DataPojo沒有的欄位或者額外計算
-     * @param dataPojo
-     * @return dataPojo
+     * 比對震旦雲原檔資料和加班單資料, 如果有對應的, 就計算時間並且加入到excel表格1後面
+     * 沒有的則放入 表格2
+     * 有加班單 但是上下班沒有打卡 --> 實際上下班時間 無
+     * 呼叫writeExcel(dataPojos);
+     * @param pinkPojos
+     * @param dataPojos
+     * @throws ParseException
+     * @throws IOException
      */
-    public static DataPojo calculateExtraFieldsData(DataPojo dataPojo) {
+    public void finalProcess(List<PinkPojo> pinkPojos , List<DataPojo> dataPojos) throws ParseException, IOException {
     	
-    	String year = Integer.toString(LocalDate.now().getYear()) ; 
+    	List<PinkPojo> removePinks = new ArrayList<>() ; 
     	
-    	// 分開開始日期 與 時間
-    	String startString = dataPojo.getStartTime() ;
-    	String startMonthString = startString.substring(0, startString.indexOf('月')) ;
-    	String startDateString = startString.substring(startString.indexOf('月') + 1, startString.indexOf('日')) ;
-    	String startHourString = startString.substring(startString.indexOf('日') + 1, startString.indexOf('時')) ;
-    	String startMinString = startString.substring(startString.indexOf('時') + 1, startString.indexOf('分')) ;
-    	
-    	dataPojo.setStartDay( year + "/" + startMonthString + "/" + startDateString);
-    	dataPojo.setStartTime( startHourString + ":" + startMinString);
-    	
-    	// 分開結束日期 與 時間
-    	String endString = dataPojo.getEndTime();
-    	String endMonthString = endString.substring(0, endString.indexOf('月')) ;
-    	String endDateString = endString.substring(endString.indexOf('月') + 1, endString.indexOf('日')) ;
-    	String endHourString = endString.substring(endString.indexOf('日') + 1, endString.indexOf('時')) ;
-    	String endMinString = endString.substring(endString.indexOf('時') + 1, endString.indexOf('分')) ;
-    	
-    	dataPojo.setEndDay( year + "/" + endMonthString + "/" + endDateString );
-    	dataPojo.setEndTime( endHourString + ":" + endMinString );
-    	
-    	// 計算申請時數
-    	// 時數 = 迄HR - 起HR
-    	int endHour = Integer.valueOf(endHourString);
-    	int startHour = Integer.valueOf(startHourString) ;
-    	int endMin = Integer.valueOf(endMinString);
-    	int startMin = Integer.valueOf(startMinString) ;
-    
-    	// 取得總共工時與分鐘
-    	int applyHour = endHour - startHour ;
-    	dataPojo.setApplyHour(Integer.toString(applyHour));
-    	
-    	// 計算承認工時
-    	// 中午12~1點 以及 晚上6~7點是不算時數的(吃飯時間)
-    	Time startTime = new Time(startHour, startMin);
-    	Time endTime = new Time(endHour, endMin);
-    	Time admitTime = Time.getTotalHourNMins(startTime, endTime);
-    	if( admitTime.minutes >= 30 ) {
-    		// 超過30分鐘 直接進位多一小時
-    		admitTime.hours = admitTime.hours + 1 ;
+    	// for 每一筆dataPojo, 並且尋找(By 名字 日期 )有沒有對應的pinkPojo
+    	for( DataPojo data: dataPojos ) {
+        	for( PinkPojo pinkPojo : pinkPojos ) {
+        		// 有的話計算相關資料並且更新dataPojo對應欄位, 並且把該 pinkPojo 從 pinkPojos移除
+        		if( pinkNameHandle( pinkPojo.getEmployee() ).equals(data.getName())  
+        			&& pinkDateHandle( pinkPojo.getDate() ).equals(data.getStartDay()) ) {
+
+        			data.setActualStartTime( pinkPojo.getOnTime() ); // 實際上班時間
+        			data.setActualEndTime( pinkPojo.getOffTime() ); // 實際下班時間
+        			
+        			// 對照申請時數 ( 實際上-實際下 ) - (申請上-申請下)  , 存分鐘
+        			if( pinkPojo.getOnTime() != "" && pinkPojo.getOffTime() != "" ) {
+            			data.setDifferTotalTime( calDifferTime(pinkPojo.getStartHour(), pinkPojo.getStartMin(), pinkPojo.getEndHour(), pinkPojo.getEndMin())
+            					- calDifferTime(data.getStartHour(), data.getStartMin(), data.getEndHour(), data.getEndMin()) );
+        			}else
+        				data.setDifferTotalTime( 0 );
+
+        			// 是否需調整( 是否為星期天)
+        			data.setSunday(isSunday(data.getStartDay())) ;
+        			
+        			// 缺卡內容
+        			data.setMissContent( pinkPojo.getMissContent() );
+        			
+        			removePinks.add(pinkPojo) ; 
+        		}
+        	}
+        	
     	}
     	
-    	dataPojo.setAdmitTime(Integer.toString( admitTime.hours ));
+    	for( PinkPojo removedPinkPojo : removePinks)
+    		pinkPojos.remove(removedPinkPojo) ; 
+    		
+    	// 保險起見 清空list裡面null 不管有沒有
+    	while (dataPojos.remove(null));
+    	if( CollectionUtils.isNotEmpty(pinkPojos)) while (pinkPojos.remove(null));
     	
-    	// 設定專案名稱 
-    	// 目前測試階段都設定為合庫
-    	dataPojo.setProjectName("合庫");
-    	
-    	if( debug ) {
-    		System.out.println(dataPojo.getStartDay()) ;
-    		System.out.println(dataPojo.getStartTime()) ;
-    		System.out.println(dataPojo.getEndDay()) ;
-    		System.out.println(dataPojo.getEndTime()) ;
-    		System.out.println(dataPojo.getApplyHour()) ;
-    	}
+    	writeExcel(dataPojos, pinkPojos);
+    }
+   
+    /**
+     * 寄信給忘記截圖的同仁
+     * @param dataPojos
+     * @throws IOException 
+     */
+    private void sendMail( List<DataPojo> dataPojos) throws IOException {
+
+		BufferedReader consoleInput=new BufferedReader(new InputStreamReader(System.in));
+		System.out.println("要寄信給加班單沒有截圖的人嗎？(Y/N)");
+
+		char yesNo ;
+		yesNo = consoleInput.readLine().charAt(0);
+
+		if( yesNo == 'Y' ){
+			System.out.println("\n寄信中....");
+			for( DataPojo d : dataPojos ) {
+				if( !d.isHasPhoto() ) {
+					// send mail
+					OutlookSender.sendMail(d.getName(), d.getStartDay());
+				}
+			}
+
+			System.out.println("信件全數送完");
+		}
+
+
+    }
     
-    	return dataPojo ;
+    
+    
+    // 處理震旦雲資料
+    // 因為pink 裡面名稱會是部門＋姓名,  所以要透過這個function取出
+    public String pinkNameHandle(String pinkName) {
+    	
+    	String ret_Str = pinkName.substring(pinkName.lastIndexOf('-') + 1, pinkName.length() ) ;
+    	
+    	return cleanString(ret_Str) ;
+    }
+    
+    public String pinkDateHandle(String pinkDate) {
+    	
+    	// 轉成 yyyy/mm/dd 形式
+    	int first = pinkDate.indexOf('-');
+    	int second = pinkDate.indexOf("-", first + 1);
+    	
+    	String year= pinkDate.substring(0, first ) ;
+    	String month= pinkDate.substring(first + 1, second ) ;
+    	String date= pinkDate.substring(second + 1, pinkDate.indexOf('(') ) ;
+
+    	return year + "/" + month + "/" + date ;
     }
     
     /**
-     * 取得word裡面我們要的資訊, 存到並回傳 DataPojo
-     * @param filePathDocx
+     * 看日期是否為星期天
+     * @param bDate
+     * @return
+     * @throws ParseException
+     */
+    public boolean isSunday(String bDate) throws ParseException {
+    	
+        DateFormat format1 = new SimpleDateFormat("yyyy/MM/dd");
+        Date bdate = format1.parse(bDate);
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(bdate);
+        if( cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {
+            return true ; 
+        } 
+        
+        return false ;
+    }
+
+    /**
+     * 計算兩個時間的差,回傳分鐘數
+     * @param startHour
+     * @param startMin
+     * @param endHour
+     * @param endMin
      * @return
      */
-    public static DataPojo readWord2007Docx(String filePathDocx){ 
-
-    	DataPojo dataPojo = null ; 
-   	 	try {
-   	 	   File file = new File(filePathDocx);
-   	 	   FileInputStream fis = new FileInputStream(file.getAbsolutePath());
-   	 	   XWPFDocument document = new XWPFDocument(fis);
-   	 	   XWPFWordExtractor extractor = new XWPFWordExtractor(document);
-   	 	   
-	 	   String bodyString = extractor.getText() ;
-	 	   String xmlString = document.getDocument().toString() ;
-   	 	   if( debug ) {
-   	 		   System.out.println("Date : " + getDate(bodyString));
-   	 		   System.out.println("Name : " + getStaffName(bodyString));
-   	 		   System.out.println("Reason : " + getLateReason(xmlString));
-   	 		   System.out.println("Apartment : " + getApartment(bodyString));
-   	 		   System.out.println("Start Time : " + getStartTime(bodyString));
-   	 		   System.out.println("End Time : " + getEndTime(bodyString));
-   	 		   System.out.println("Rest or Get money : " + restOrMoney(bodyString));
-   	 	   }
-   	 	   
-   	 	   // Write data to dataPojo 
-   	 	   dataPojo = new DataPojo() ;
-   	 	   dataPojo.setDate( getDate(bodyString) );
-   	 	   dataPojo.setName( getStaffName(bodyString) );
-   	 	   dataPojo.setReason( getLateReason(xmlString) );
-   	 	   dataPojo.setApartment( getApartment(bodyString));
-   	 	   dataPojo.setStartTime( getStartTime(bodyString) );
-   	 	   dataPojo.setEndTime( getEndTime(bodyString ) );
-   	 	   dataPojo.setRestOrMoney(restOrMoney(bodyString));
-   	 	   
-           fis.close();
-		} catch(Exception ex) {
-		    ex.printStackTrace();
-		} 
-   	 	
-   	 	return dataPojo ; 
+    public int calDifferTime(int startHour, int startMin, int endHour, int endMin) {
+    	
+    	Time start = new Time(startHour, startMin) ;
+    	Time end = new Time(endHour, endMin) ;
+    	
+    	Time differTime = Time.diffTime(start, end);
+    	
+    	return differTime.getHours() * 60 + differTime.getMinutes() ;
+    	
     }
     
-    // 去除String裡面空白換行等字元
     private static String cleanString(String unCleanString) { 
-    	return unCleanString.trim().replaceAll("\r\n|\r|\n|\t|\f|\b", "").replaceAll("\\s+","") ;
+    	return unCleanString.trim().replaceAll("\r\n|\r|\n|\t|\f|\b", "").replaceAll("\\s+","")
+    			.replaceAll("[　*| *| *|//s*]*", "").replaceAll("_", "") ;
     }
-    
-    // 取得年月日
-    private static String getDate(String document) {
-    	
-    	int applyDateIndex = document.indexOf("申請日期:") ; 
-    	int staffNameIndex = document.indexOf("員工姓名") ; 
-    	int offset = "申請日期:".length(); 
-    	
-    	String originalDateString = cleanString(document.substring(applyDateIndex+offset, staffNameIndex)) ; 
-    	int yearIndex = originalDateString.indexOf("年") ; 
-    	int monthIndex = originalDateString.indexOf("月");
-    	int dateIndex = originalDateString.indexOf("日") ;
-    	
-    	String monthString = originalDateString.substring(yearIndex+1, monthIndex) ;
-    	String dateString = originalDateString.substring(monthIndex+1,dateIndex) ; 
-    	
-    	return monthString + "/" + dateString ; 
-    }
-    
-    // 取得員工姓名
-    private static String getStaffName( String document) {
-    	int staffNameIndex = document.indexOf("員工姓名") ; 
-    	int apartmentIndex = document.indexOf("部門") ; 
-    	int offset = "員工姓名".length() ;
-    	
-    	return cleanString(document.substring(staffNameIndex+offset, apartmentIndex)) ;
-    }
-    
-    // 取得部門
-    private static String getApartment(String document) {
-    	int apartmentIndex = document.indexOf("部門") ; 
-    	int expectTimeIndex = document.indexOf("預計") ; 
-    	int offset = "部門".length() ;
-    	
-    	return cleanString(document.substring(apartmentIndex+offset, expectTimeIndex));
-    }
-    
-    // 取得起始時間
-    private static String getStartTime(String document) {
-    	int startTimeIndex = document.indexOf("時間起") ; 
-    	int endTimeIndex = document.indexOf("時間迄") ;
-    	int offset = "時間起".length() ;
-    	
-    	return cleanString(document.substring(startTimeIndex+offset, endTimeIndex));
-    }
-    
-    // 取得結束時間
-    private static String getEndTime(String document) {
-    	int endTimeIndex = document.indexOf("時間迄") ;
-    	int reasonIndex = document.indexOf("加班事由") ;
-    	int offset = "時間迄".length() ;
-    	
-    	return cleanString(document.substring(endTimeIndex+offset, reasonIndex));
-    }
- 
-    // 取得加班理由
-    private static String getLateReason(String xmlString) {
-       String tmp_String = "" ; // for concat 用 
-    	
- 	   String textBoxEndString = "</v:textbox>" ;
- 	   int start = xmlString.indexOf("<v:textbox>");
- 	   int end = xmlString.indexOf("</v:textbox>");
- 	   int endMatchLength = textBoxEndString.length() ; 
- 	   
- 	   String lateReasonString = xmlString.substring(start, end+endMatchLength); // 取得xml裡面textBox的部分
- 	   String patternStr = "<w:t>.*</w:t>"; // regex
- 	   Pattern pattern = Pattern.compile(patternStr) ;
- 	   Matcher matcher = pattern.matcher(lateReasonString) ; 
- 	   
- 	   int startSize = "<w:t>".length() ; 
- 	   int endSize = "</w:t>".length() ; 
- 	   while( matcher.find() ) { // 找到所有符合之項目
-	        String targetString = matcher.group() ; 
-	        tmp_String = tmp_String + targetString.substring(startSize, targetString.length()-endSize) ; 
- 	   }
- 	 
- 	   return cleanString(tmp_String);
-    }
-    
-    // 補修或者加班費
-    private static boolean restOrMoney(String document) {
-    	int methodIndex = document.indexOf("使用方式") ;
-    	int actualTimeIndex = document.indexOf("實際工作時數") ;
-    	int offset = "使用方式".length() ;
-    	
-    	String resultString = cleanString(document.substring(methodIndex+offset, actualTimeIndex));
-    	
-    	if( resultString.indexOf("補休") == 0 ) { // 代表補修被勾選,但string顯示不出來
-    		return true ; 
-    	}
-    	
-    	return false ;
-    }
-    
 }

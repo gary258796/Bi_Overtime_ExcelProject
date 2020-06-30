@@ -16,9 +16,16 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
-    <userName>Phina.Deng</userName>
-    <wordsPath>/Users/liaoyushao/Downloads/</wordsPath>
-    <writePath>/Users/liaoyushao/Downloads/PhinaExcel.xlsx</writePath>
+    <userName>BI-Phina</userName>
+    <pinkColor>59</pinkColor>
+    <!-- wordAndExcel -->
+    <wordsPath>/Users/liaoyushao/Desktop/testBiProject/wordAndExcel/</wordsPath>
+    <writePath>/Users/liaoyushao/Desktop/testBiProject/result/BI-OT.xlsx</writePath>
+    <errorWordsPath>/Users/liaoyushao/Desktop/testBiProject/errorWord/</errorWordsPath>
+    <contactPath>/Users/liaoyushao/Desktop/testBiProject/contactInfo/contactInfo.xlsx</contactPath>
+    <emailSenderAccount>phina.deng@softbi.com</emailSenderAccount>
+    <emailSenderPassword>suga0408</emailSenderPassword>
+    
   </properties>
 
   <dependencies>
@@ -54,13 +61,31 @@
   		<version>1.4</version>
 	</dependency>
 	<dependency>
+  		<groupId>com.sun.mail</groupId>
+  		<artifactId>javax.mail</artifactId>
+  		<version>1.6.1</version>
+	</dependency>
+	<dependency>
   		<groupId>org.apache.poi</groupId>
   		<artifactId>poi-ooxml-schemas</artifactId>
   		<version>4.1.2</version>
 	</dependency>
-	
-	
-	
+	<dependency>
+  		<groupId>org.apache.commons</groupId>
+  		<artifactId>commons-configuration2</artifactId>
+  		<version>2.7</version>
+	</dependency>
+	<dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>3.2.1</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+  		<groupId>commons-configuration</groupId>
+  		<artifactId>commons-configuration</artifactId>
+  		<version>1.9</version>
+	</dependency>
   </dependencies>
 
   <build>

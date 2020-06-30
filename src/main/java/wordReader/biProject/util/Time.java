@@ -1,6 +1,4 @@
-package wordReader.biProject;
-
-import org.bouncycastle.jce.provider.JDKDSASigner.ecDSA;
+package wordReader.biProject.util;
 
 public class Time {
 	
@@ -13,8 +11,20 @@ public class Time {
 		this.minutes = minutes;
 	}
 	
+	/**
+	 * start 一定要比stop小
+	 * 取得兩個時間差異
+	 * @param start
+	 * @param stop
+	 * @return
+	 */
 	public static Time diffTime( Time start, Time stop) {
 		Time diffTime = new Time(0, 0) ;
+		
+		// 超過一天 補齊24
+		if( stop.getHours() < start.getHours() ) 
+			stop.setHours( stop.getHours() + 24 );
+		
 		
 		if( stop.minutes >= start.minutes) {
 			diffTime.hours = stop.hours - start.hours ;
@@ -130,7 +140,6 @@ public class Time {
 		return ret_Time ;
 	}
 
-	
 	public static Time Add( Time a, Time b) {
 		
 		Time retTime = new Time(0, 0);
@@ -145,4 +154,24 @@ public class Time {
 		
 		return retTime ;
 	}
+
+	
+	
+	// Getter and Setter
+	public int getHours() {
+		return hours;
+	}
+
+	public void setHours(int hours) {
+		this.hours = hours;
+	}
+
+	public int getMinutes() {
+		return minutes;
+	}
+
+	public void setMinutes(int minutes) {
+		this.minutes = minutes;
+	}
+	
 }
