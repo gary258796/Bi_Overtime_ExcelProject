@@ -2,9 +2,7 @@ package wordReader.biProject;
 
 
 import java.text.ParseException;
-
 import wordReader.biProject.cusError.ExcelException;
-import wordReader.biProject.util.PropsHandler;
 
 
 public class Start {

@@ -77,7 +77,7 @@ public class OutlookSender {
 	        multipart.addBodyPart(messageBodyPart);
 	        
 	        messageBodyPart = new MimeBodyPart() ; 
-	        DataSource fdsDataSource  = new FileDataSource("/Users/liaoyushao/eclipse-workspace/servlet/biProject/src/main/resources/biIcon.jpg") ; 
+	        DataSource fdsDataSource  = new FileDataSource(PropsHandler.getPropertiesPath("BiImagePath")) ; 
 	        messageBodyPart.setDataHandler(new DataHandler(fdsDataSource));
 	        messageBodyPart.setHeader("Content-ID", "<image>");
 	        multipart.addBodyPart(messageBodyPart);

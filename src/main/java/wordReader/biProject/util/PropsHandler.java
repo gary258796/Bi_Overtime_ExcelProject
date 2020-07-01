@@ -17,7 +17,7 @@ public class PropsHandler {
 
         Properties props = new Properties();
 
-        props.load(new FileInputStream( getPropertiesPath() ));
+        props.load(new FileInputStream( getPropertiesPath("propertiesPath") ));
         
         return props.getProperty(getItem) ; 
 	}
@@ -26,9 +26,9 @@ public class PropsHandler {
 
 	public static void setter(String field, String value) throws IOException, ConfigurationException {
 
-		PropertiesConfiguration config = new PropertiesConfiguration(getPropertiesPath());
+		PropertiesConfiguration config = new PropertiesConfiguration(getPropertiesPath("propertiesPath"));
 
-		config.setProperty("pinkValue", value);
+		config.setProperty(field, value);
 
 		config.save();
 
@@ -36,17 +36,17 @@ public class PropsHandler {
 
 
 	/**
-	 * 取得外部properties檔案位置
+	 * 
 	 * @return
 	 * @throws IOException
 	 */
-	private static String getPropertiesPath() throws IOException {
+	public static String getPropertiesPath(String target) throws IOException {
 
 		Properties props = new Properties();
 
 		props.load(App.class.getClassLoader().getResourceAsStream("application.properties"));
 
-		return props.getProperty("propertiesPath") ;
+		return props.getProperty(target) ;
 
 	}
 	
