@@ -55,7 +55,7 @@ public class App
 		} catch (ExcelException e) {	// 路徑底下沒有 .xls
 			System.out.println( e.getMessage() );
 		} finally {
-	    	if(CollectionUtils.isEmpty(pinkPojos) || pinkPojos.size() == 0 )
+	    	if( CollectionUtils.isEmpty(pinkPojos) || pinkPojos.size() == 0 )
 	    		System.out.println("PinkPojos 為null或者大小為0,可能是因為這個excel粉紅色欄位index不是59.");
 		}
 

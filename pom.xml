@@ -15,17 +15,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
-    <userName>BI-Phina</userName>
-    <pinkColor>59</pinkColor>
-    <!-- wordAndExcel -->
-    <wordsPath>/Users/liaoyushao/Desktop/testBiProject/wordAndExcel/</wordsPath>
-    <writePath>/Users/liaoyushao/Desktop/testBiProject/result/BI-OT.xlsx</writePath>
-    <errorWordsPath>/Users/liaoyushao/Desktop/testBiProject/errorWord/</errorWordsPath>
-    <contactPath>/Users/liaoyushao/Desktop/testBiProject/contactInfo/contactInfo.xlsx</contactPath>
-    <emailSenderAccount>phina.deng@softbi.com</emailSenderAccount>
-    <emailSenderPassword>suga0408</emailSenderPassword>
-    
+    <maven.compiler.target>1.7</maven.compiler.target>    
   </properties>
 
   <dependencies>
@@ -79,24 +69,30 @@
       <groupId>commons-collections</groupId>
       <artifactId>commons-collections</artifactId>
       <version>3.2.1</version>
-      <optional>true</optional>
     </dependency>
+    <dependency>
+        <groupId>commons-beanutils</groupId>
+        <artifactId>commons-beanutils</artifactId>
+        <version>1.9.2</version>
+    </dependency>
+    <dependency>
+  		<groupId>org.apache.commons</groupId>
+  		<artifactId>commons-collections4</artifactId>
+  		<version>4.1</version>
+	</dependency>
     <dependency>
   		<groupId>commons-configuration</groupId>
   		<artifactId>commons-configuration</artifactId>
-  		<version>1.9</version>
+  		<version>1.10</version>
 	</dependency>
   </dependencies>
 
   <build>
-    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
-        <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
           <version>3.1.0</version>
         </plugin>
-        <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
           <version>3.0.2</version>
@@ -130,8 +126,42 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.0.0</version>
         </plugin>
+         <plugin>
+    		<groupId>org.apache.maven.plugins</groupId>
+    		<artifactId>maven-dependency-plugin</artifactId>
+    		<version>3.1.2</version>
+    		<executions>
+        		<execution>
+            		<id>copy-dependencies</id>
+            		<phase>package</phase>
+            		<goals>
+                		<goal>copy-dependencies</goal>
+            		</goals>
+            		<configuration>
+                		<outputDirectory>${project.build.directory}/libs</outputDirectory>
+                		<overWriteReleases>false</overWriteReleases>
+                		<overWriteSnapshots>false</overWriteSnapshots>
+                		<overWriteIfNewer>true</overWriteIfNewer>
+            		</configuration>
+        		</execution>
+    		</executions>
+		</plugin> 
+		
+		<plugin>
+        	<groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+            	<archive>
+                	<manifest>
+                    	<addClasspath>true</addClasspath>
+                    	<classpathPrefix>libs/</classpathPrefix>
+                        <mainClass>wordReader.biProject.Start</mainClass>
+                    </manifest>
+                </archive>
+            </configuration>
+        </plugin>
       </plugins>
-    </pluginManagement>
+
     
     
     <resources>
