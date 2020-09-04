@@ -17,6 +17,8 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.RegionUtil;
+import org.apache.poi.util.StringUtil;
+import org.apache.poi.util.TempFile;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import wordReader.biProject.excelFormat.CusCell;
 import wordReader.biProject.excelFormat.CusCellStyle;
@@ -116,8 +118,10 @@ public class ExcelWriter {
 	 		 convertDataToSecondTableRow( workbook, sheet, data, row);
 	 	 }
 	 	 
-	 	 // 合併編號 以及承認天數
-	 	 handleTable2IdnNAdmitDays(sheet , startOfTable2BodyRowNum, rowNum) ; 
+	 	 // 合併編號
+	 	 handleTable2Idn(sheet, startOfTable2BodyRowNum, rowNum); 
+	 	 // 合併使用方式 及承認天數
+	 	handleTable2UsewaysNAdmitDays(sheet , startOfTable2BodyRowNum, rowNum) ; 
 	 	
 	 	 
 	 	 // 加班明細sheet
@@ -174,9 +178,9 @@ public class ExcelWriter {
 	  	 // 設置默認行高
 	  	 sheet.setDefaultRowHeight((short) 400);
 
-	  	 // 標題 : 03月份員工加班明細表
+	  	 // 標題 : 月份員工加班明細表
 	  	 // 取得範圍內的儲存格 (start row , end row , start column , end column )
-	  	 CellRangeAddress cellRangeAddress = new CellRangeAddress(0, 0, 1, 13); 
+	  	 CellRangeAddress cellRangeAddress = new CellRangeAddress(0, 0, 1, 12); 
 	  	 // 合併儲存格
 	  	 sheet.addMergedRegion(cellRangeAddress) ;
 	  	 // 創建標題row 
@@ -194,13 +198,13 @@ public class ExcelWriter {
 	  	 titleCell.setCellStyle(titleStyle); // 塞入style到cell 
 	  	 
 	  	 // 標題右邊說明
-	  	 cellRangeAddress = new CellRangeAddress(0, 2, 14, 16); 
+	  	 cellRangeAddress = new CellRangeAddress(0, 2, 13, 15); 
 	  	 sheet.addMergedRegion(cellRangeAddress) ;
-	  	 Cell detailCell = title.createCell(14) ;
+	  	 Cell detailCell = title.createCell(13) ;
 	  	 detailCell.setCellValue("109年確認，承認工時需扣除12-13、18-19吃飯時間(半小時不作扣除)，配合以下勞動基準法 - 勞動條件及就業平等目：\n" + 
 	  	 		"第 35 條-勞工繼續工作四小時，至少應有三十分鐘之休息。但實行輪班制或其工作有連續性或緊急性者，雇主得在工作時間內，另行調配其休息時間。");
 	  	 Font fontSizeTenFont = workbook.createFont() ; 
-	  	 fontSizeTenFont.setFontHeightInPoints((short) 10); // 字體大小設定為30
+	  	 fontSizeTenFont.setFontHeightInPoints((short) 13); 
 	  	 CellStyle detCellStyle = workbook.createCellStyle() ;
 	  	 detCellStyle.setWrapText(true); 
 	  	 detCellStyle.setVerticalAlignment(VerticalAlignment.TOP);
@@ -636,29 +640,34 @@ public class ExcelWriter {
 		   	  
 		   	 cellNum = cellNum + 1 ;
 		   	
-		   	 
-		   	 
-		   	 
 		   	 // 使用方式
 		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
 		   	 cell.setCellValue(data.getRestOrMoney()); 
 		   	 cellNum = cellNum + 1 ;
 		   	 
-		   	 
 		   	 // 承認工時1-5 , 6 - 8 直接算一天8小時, 9-12
 		   	 int[] resultHours = returnTotalTime(data.getAdmitTime() == null ? 0 : Integer.parseInt(data.getAdmitTime()) ) ;
-		     // 加班一階 二階 三階
-		   	 for( int i : resultHours) {
-			   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
-			   	 cell.setCellValue( Integer.toString(i) ); 
-			   	 cellNum = cellNum + 1 ;
+		   	 if( data.getRestOrMoney().equals("補休") ) {
+		   		 for( int i = 0 ; i < 3 ; i++ ) {
+				   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+				   	 cell.setCellValue("0"); 
+				   	 cellNum = cellNum + 1 ;
+		   		 }
+		   	 }
+		   	 else {
+			     // 加班一階 二階 三階
+			   	 for( int i : resultHours) {
+				   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+				   	 cell.setCellValue( Integer.toString(i) ); 
+				   	 cellNum = cellNum + 1 ;
+			   	 }
 		   	 }
 		   	 
 		   	 // 加班補修
 		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
 		   	 String restOrMoney = data.getRestOrMoney() == null ? "" : data.getRestOrMoney() ; 
 		   	 if( restOrMoney.equals("補休") ) {
-			   	 cell.setCellValue( Arrays.stream(resultHours).sum() ); 
+			   	 cell.setCellValue( String.valueOf(Arrays.stream(resultHours).sum()) ); 
 		   	 }
 		   	 else cell.setCellValue(""); 
 		   	 cellNum = cellNum + 1 ;
@@ -715,143 +724,203 @@ public class ExcelWriter {
 		   Cell cell1 = row.getCell(9) ;
 		   Cell cell2 = row.getCell(10) ;
 		   Cell cell3 = row.getCell(11) ;
+		   Cell cell4 = row.getCell(12) ;
+		   
+		   int baseForRestHour = cell4 == null ? 0 : cell4.getStringCellValue() != "" ? Integer.parseInt(cell4.getStringCellValue()) : 0;
 		   
 		   if( cell1 != null && cell2 != null && cell3 != null ) {
-			   return Integer.parseInt(cell1.getStringCellValue()) + Integer.parseInt(cell2.getStringCellValue()) 
+			   return baseForRestHour + Integer.parseInt(cell1.getStringCellValue()) + Integer.parseInt(cell2.getStringCellValue()) 
 			   			+ Integer.parseInt(cell3.getStringCellValue()) ; 
 		   }
 		   
 		   return 0 ; 
 	   }
 	   
-	   
 	   /**
-	    * 編號以及承認天數核定
+	    * 合併編號部分( 依照名字 )
+	    * 
 	    * @param sheet
 	    * @param startOfTable2BodyRowNum
 	    * @param lastRowNumofTable2
 	    */
-	   private static void handleTable2IdnNAdmitDays(Sheet sheet, int startOfTable2BodyRowNum , int lastRowNumofTable2) {
+	   private static void handleTable2Idn(Sheet sheet, int startOfTable2BodyRowNum , int lastRowNumofTable2) {
+		   int nameColumnIndex = 2 ; 						// 名稱欄位 在第2行 
+		   int rowCountFirst = startOfTable2BodyRowNum ; 	// 第二個表 開始的列數
+		   int rowCountLast = lastRowNumofTable2 ; 			// 第二個表結束的列數
 		   
-		   int nameColumnIndex = 2 ; 
-		   int rowCountFirst = startOfTable2BodyRowNum ; 
-		   int rowCountLast = lastRowNumofTable2 ; 
+		   // basic needs 
+		   int idn = 1 ; 
+		   boolean getNameTime = true ; 
+		   Cell baseCell = null ;
+		   Cell baseIdnCell = null ;
+		   Cell baseAdmitDaysCell = null  ;
+		   String baseName = "" ;
+		   int baseIndex = 0 ;
+		   Cell nextCell = null  ;
+		   String nextName = "" ;
+		   int admitHours = 0 ; 
 		   
 		   try {
-			   
-			   int idn = 1 ; 
-			   boolean getNameTime = true ; 
-			   
-			   Cell baseCell = null ;
-			   Cell baseIdnCell = null ;
-			   Cell baseAdmitDaysCell = null  ;
-			   String baseName = "" ;
-			   int baseIndex = 0 ;
-				  
-			   Cell nextCell = null  ;
-			   String nextName = "" ;
-			
-			   int admitHours = 0 ; 
-			   
 			   for( int i = rowCountFirst ; i < rowCountLast ; i++ ) {
-	 				  
-	 				  // 取得名稱
-	 				  if( getNameTime ) {
+	 				  if( getNameTime ) { // 取得名稱
 	 					  Row row = sheet.getRow(i);
 	 				      if( row != null) {
-	 					      baseCell = row.getCell(nameColumnIndex);
+	 					      baseCell = row.getCell(nameColumnIndex); 		// 新的第一個不重複名稱的cell
 	 					      if( baseCell != null ) {
-	 					    	  baseIdnCell = row.getCell(0); // 這個名稱底下最上面的row的第一個cell
-	 					    	  baseAdmitDaysCell = row.getCell(14) ;
-	 					    	  
-	 					    	  baseName = baseCell.getStringCellValue() ; // 先找到一個名子
-	 					    	  
-	 					    	  baseIndex = i ; // 紀錄該rowIndex
-	 					    	  
-	 					    	  getNameTime = false ; // 關閉找名字開關
-	 					    	  
-	 					    	  admitHours = getAdmitHours(row) ;
-	 					    	 
+	 					    	  baseIdnCell = row.getCell(0); 			// 該名稱之編號
+	 					    	  baseName = baseCell.getStringCellValue(); // 該名稱
+	 					    	  baseIndex = i ; 							// 紀錄該rowIndex（合併時會用到)
+	 					    	  getNameTime = false ; 					// 關閉找名字開關( 會在找到下一個不重複名字的時候開啟)
 	 					      }
 	 				      }
 	 				  }
 	 				  
-	 				  // 找到不同名稱之前,不會將開關重新開啟
-	 				  if( !getNameTime ) {
-	 					  // 如果下一個row還未超出最大行數
-	 					  if( (i + 1) <  rowCountLast ) {
-	 						  
+	 				  if( !getNameTime ) { 									// 找到不同名稱之前,不會將開關重新開啟
+	 					  if( (i + 1) <  rowCountLast ) { 					// 如果下一個row還未超出最大行數
 	 	 					  Row row = sheet.getRow(i + 1);
 	 	 				      if( row != null ) {
-	 	 				    	  nextCell = row.getCell(nameColumnIndex);
+	 	 				    	  nextCell = row.getCell(nameColumnIndex);  // baseCell 的下一列的名稱cell
 	 	 					      if( nextCell != null ) {
-	 	 					    	  // 取得下一行名字,看名字是否相同
-	 	 					    	  nextName = nextCell.getStringCellValue() ; 
+	 	 					    	  nextName = 
+	 	 					    			  nextCell.getStringCellValue();// 取得下一行名字,看名字是否相同 
 	 	 					    	  
-	 	 					    	  if( !nextName.equals(baseName) ) { // 名字不相同
-
-	 	 					    		  // 這個名稱只有一筆資料
-	 	 					    		  if( i == baseIndex) {
-	 	 					    			  // 不用合併 因為只有一格
-	 	 					    			  // 設定編號號碼即可
-	 	 					    			  baseIdnCell.setCellValue(idn++);
-	 	 					    		      baseAdmitDaysCell.setCellValue( returnAdmitDays(admitHours)) ;
-	 	 					    		  }
-	 	 					    		  else {
-	 	 	 					    		  // 代表 要做合併了 從baseIndex到nextIndex
+	 	 					    	  if( !nextName.equals(baseName) ) { 	// 名字不相同
+	 	 					    		  // 代表這個名稱只有一筆資料
+	 	 					    		  if( i == baseIndex) // 不用合併 因為只有一格
+	 	 					    			  baseIdnCell.setCellValue(idn++); // 設定baseIdnCell編號號碼即可 
+	 	 					    		  else { // 不只有一格,要做合併
 	 	 	 							 	  CellRangeAddress cra = new CellRangeAddress(baseIndex,i,0,0) ;
-	 	 	 							 	  sheet.addMergedRegion(cra) ;
-	 	 	 							 	  // 設定編號號碼, 都設定到baseIndex那個cell去
-	 	 	 							 	  baseIdnCell.setCellValue(idn++);
-	 	 	 							 	  
-	 	 	 					    		  // 代表 要做合併了 從baseIndex到nextIndex
-	 	 	 							 	  cra = new CellRangeAddress(baseIndex,i, 14, 14) ;
-	 	 	 							 	  sheet.addMergedRegion(cra) ;
-	 	 	 							 	  // 設定編號號碼, 都設定到baseIndex那個cell去
-	 	 	 							 	  baseAdmitDaysCell.setCellValue(returnAdmitDays(admitHours));
+	 	 	 							 	  sheet.addMergedRegion(cra) ;	   // 合併（從baseIndex到目前i的index）
+	 	 	 							 	  baseIdnCell.setCellValue(idn++); // 設定編號號碼, 都設定到baseIndex那個cell去
 	 	 					    		  }
 	 	 					    		  
-	 	 					    		  
-	 	 					    		  
-	 	 					    		  	//把getNameTime重新開啟
-	 	 					    		  getNameTime = true ; 
+	 	 					    		  getNameTime = true ; 				//把找名稱開關重新開啟
 	 	 					    	  }
-	 	 					    	  else {
-	 	 					    		admitHours = admitHours + getAdmitHours(row) ;
+	 	 					    	  
+	 	 					      }
+	 	 				      }
+	 					  } 
+	 					  else { // 如果已經是最後一行了
+	 						  if(baseIndex == i ) baseIdnCell.setCellValue(idn); // 只有一格,不需合併
+	 						  else {											 // 不只一格,需要合併
+	 	 						  try {
+	 	 							 CellRangeAddress cra = new CellRangeAddress(baseIndex,i,0,0) ;
+	 	 							 sheet.addMergedRegion(cra) ;				// 合併 baseIndex 到 i 的cell 
+	 	 						  } catch (Exception e) {
+	 	 							  System.out.println("在合併儲存格,範圍沒有包含2個以上的cells導致,當加班筆數少於一定數量會有這個例外,如果結果正確可以忽略");
+	 	 						  } 
+	 	 						  
+	 	 						  baseIdnCell.setCellValue(idn);
+	 						  }
+	 					  }
+	 				  }
+	 				  
+			   }
+		   } catch (Exception e) {
+			   System.out.println(e);
+		   }
+	   }
+	   
+	   
+	   /**
+	    * 使用方式以及承認天數核定
+	    * 
+	    * @param sheet
+	    * @param startOfTable2BodyRowNum
+	    * @param lastRowNumofTable2
+	    */
+	   private static void handleTable2UsewaysNAdmitDays(Sheet sheet, int startOfTable2BodyRowNum , int lastRowNumofTable2) {
+		   
+		   int nameColumnIndex = 2 ; 
+		   int restOrMoneyColumnIndex = 8;
+		   int admitHoursColumnIndex = 14; 
+		   int rowCountFirst = startOfTable2BodyRowNum ; 
+		   int rowCountLast = lastRowNumofTable2 ; 
+		   
+		   // basic needs 
+		   int idn = 1 ; 
+		   boolean getNameTime = true ; 
+		   Cell baseCell = null ;
+		   Cell baseIdnCell = null ;
+		   Cell baseAdmitDaysCell = null  ;
+		   Cell baseRestOrMoneyCell = null ;
+		   String baseRestOrMoney = "" ; 
+		   String baseName = "" ;
+		   int baseIndex = 0 ;
+		   Cell nextCell = null  ;
+		   String nextName = "" ;
+		   String nextRestOrMoney = "";
+		   int admitHours = 0 ; 
+		   try { 
+			   for( int i = rowCountFirst ; i < rowCountLast ; i++ ) {
+	 				  if( getNameTime ) {											// 取得名稱啟動
+	 					  Row row = sheet.getRow(i);
+	 				      if( row != null) {
+	 					      baseCell = row.getCell(nameColumnIndex);				// 取名稱那個欄位的cell
+	 					      if( baseCell != null ) {
+	 					    	  baseIdnCell = row.getCell(0); 					// 這個名稱的編號cell
+	 					    	  baseAdmitDaysCell = row.getCell(admitHoursColumnIndex) ; // 這個base的承認天數cell
+	 					    	  baseRestOrMoneyCell = row.getCell(restOrMoneyColumnIndex); // Base的使用方式cell
+	 					    	  baseRestOrMoney = baseRestOrMoneyCell.getStringCellValue();// 這個名稱這個行數的 使用方式
+	 					    	  baseName = baseCell.getStringCellValue() ; 		// 取得名稱
+	 					    	  baseIndex = i ; 									// 紀錄該rowIndex
+	 					    	  admitHours = getAdmitHours(row) ; 				// 取得該承認小時
+	 					    	  
+	 					    	  getNameTime = false ; 							// 關閉找名字開關
+	 					      }
+	 				      }
+	 				  }
+	 				  
+	 				  if( !getNameTime ) {											// 找到不同名稱之前,不會將開關重新開啟
+	 					  if( (i + 1) <  rowCountLast ) {							// 如果下一個row還未超出最大行數
+	 	 					  Row row = sheet.getRow(i + 1);						// 取得下一行
+	 	 				      if( row != null ) {
+	 	 				    	  nextCell = row.getCell(nameColumnIndex);			// 取得下一行的名稱cell
+	 	 					      if( nextCell != null ) {
+	 	 					    	  nextName = nextCell.getStringCellValue() ;	// 取得下一行的名稱 	
+	 	 					    	  nextRestOrMoney = row.getCell(restOrMoneyColumnIndex).getStringCellValue();
+	 	 					    	  if( nextName.equals(baseName) && nextRestOrMoney.equals(baseRestOrMoney) ) { 		
+	 	 					    		  // 名字相同 && 使用方式也相同
+ 	 					    			  admitHours = admitHours + getAdmitHours(row) ; // 把承認天數加起來
+	 	 					    	  } else { // 名字不相同
+	 	 					    		  mergeModule(i, baseIndex, sheet, baseRestOrMoneyCell,baseAdmitDaysCell, baseRestOrMoney, admitHours) ; 
+	 	 					    		  //把getNameTime重新開啟
+	 	 					    		  getNameTime = true ; 
 	 	 					    	  }
 	 	 					      }
 	 	 				      }
 	 					  } // end if()
 	 					  // 如果已經是最後一行了
 	 					  else {
-	 						  if(baseIndex == i ) {
-	 							  baseIdnCell.setCellValue(idn);
-	 							  baseAdmitDaysCell.setCellValue( returnAdmitDays(admitHours) ) ;
-	 						  }
-	 						  else {
-	 	 						  try {
-	 	 							 CellRangeAddress cra = new CellRangeAddress(baseIndex,i,0,0) ;
-	 	 							 sheet.addMergedRegion(cra) ;
-	 	 							 
- 	 							 	  cra = new CellRangeAddress(baseIndex,i, 14, 14) ;
- 	 							 	  sheet.addMergedRegion(cra) ;
-	 	 						  } catch (Exception e) {
-	 	 							  System.out.println(e);
-	 	 							  System.out.println("在合併儲存格,範圍沒有包含2個以上的cells導致,當加班筆數少於一定數量會有這個例外,如果結果正確可以忽略");
-	 	 						  } 
-	 	 						  
-	 	 						  baseIdnCell.setCellValue(idn);
-	 	 						  baseAdmitDaysCell.setCellValue( returnAdmitDays(admitHours)) ;
-	 	 						  
-	 						  }
+ 	 						  try {
+ 					    		  mergeModule(i, baseIndex, sheet, baseRestOrMoneyCell,baseAdmitDaysCell, baseRestOrMoney, admitHours) ; 
+ 	 						  } catch (Exception e) {
+ 	 							  System.out.println(e);
+ 	 							  System.out.println("在合併儲存格,範圍沒有包含2個以上的cells導致,當加班筆數少於一定數量會有這個例外,如果結果正確可以忽略");
+ 	 						  } 
 	 					  }
 	 				  }
 
 				  }
 		   } catch (Exception e) {
-			// TODO: handle exception
+			  // TODO: handle exception
 		   }
 		   
+	   }
+	   
+	   private static void mergeModule(int i , int baseIndex, Sheet sheet, Cell baseRestOrMoneyCell, Cell baseAdmitDaysCell, String baseRestOrMoney, int admitHours) {
+   		  if( i != baseIndex) { // 這個名稱只有一筆資料
+	    		  // 代表 要做合併了 從baseIndex到nextIndex
+			 	  CellRangeAddress cra = new CellRangeAddress(baseIndex,i,8,8) ;
+			 	  sheet.addMergedRegion(cra) ;
+			 	  
+	    		  // 代表 要做合併了 從baseIndex到nextIndex
+			 	  cra = new CellRangeAddress(baseIndex,i, 14, 14) ;
+			 	  sheet.addMergedRegion(cra) ;
+  		  }
+			  
+		  baseRestOrMoneyCell.setCellValue(baseRestOrMoney);
+		  baseAdmitDaysCell.setCellValue( returnAdmitDays(admitHours)) ;
 	   }
 	   
 	   
@@ -861,12 +930,8 @@ public class ExcelWriter {
 		   int hours = inhours % 8 ; 
 		   
 		   return Integer.toString(days) + "天" + Integer.toString(hours) + "時" ;
-		   
 	   }
 
-	   
-	   
-	   
 	   // Sheet2 Table1
 	   /**
 	   * 生成sheet表2，並寫入第一行數據（列頭）and 相關說明 更新日期等

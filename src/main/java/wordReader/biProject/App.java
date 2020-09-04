@@ -63,7 +63,6 @@ public class App
     	finalProcess(pinkPojos, dataPojos);
 
     	// 將DataPojo 裡面 , hasPhoto 為false的資料 送outlook mail給該位同仁
-
     	sendMail(dataPojos) ;
 
 		System.out.println("程式結束.");
@@ -199,17 +198,26 @@ public class App
     	}
     	
     	if( CollectionUtils.isNotEmpty( stackList ) ) {
-        	// 將 stackList 排序, 名稱 > 日期 
+        	// 將 stackList 排序, 部門 > 名稱 > 使用方式 > 日期 
             Collections.sort(stackList,
             	      new Comparator<DataPojo>() {
             	          public int compare(DataPojo o1, DataPojo o2) {
-            	          	
-            	          	if( o1.getName().compareTo(o2.getName()) == 0 ) {
-            	          		// 名稱相同  按照日期先後順序
-            	          		return o1.getStartDay().compareTo( o2.getStartDay()) ;
-            	          	}
-            	          	
-            	              return o1.getName().compareTo(o2.getName());
+            	        	// 部門 相同
+            	        	if( o1.getApartment().compareTo(o2.getApartment()) == 0 ) {
+            	        		// 名稱相同, 按照使用方式
+                   	          	if( o1.getName().compareTo(o2.getName()) == 0 ) {
+                   	          		// 使用方式相同, 按日期決定
+                   	          		if(o1.getRestOrMoney().compareTo(o2.getRestOrMoney()) == 0 ) {
+                   	          			return o1.getStartDay().compareTo( o2.getStartDay()) ;
+                   	          		}
+                   	          		
+                	          		return o1.getRestOrMoney().compareTo(o2.getRestOrMoney()) ;
+                	          	}
+                	            
+                	            return o1.getName().compareTo(o2.getName());
+            	        	}
+            	        	// 部門不相同
+            	        	return o1.getApartment().compareTo(o2.getApartment()) ;
             	          }
             	      });
     	}else {

@@ -47,7 +47,7 @@ public class HandlePink {
 
 			Workbook wb = WorkbookFactory.create(new File(wordsPath + files[0].getName()));
 			
-			// 取得日期、員工、上班、下班的column
+			// 取得日期、員編-姓名、上班、下班的column
 			findFieldsColumn(wb);
 
 			// 取得pink row的資料
@@ -108,7 +108,7 @@ public class HandlePink {
 							setDateColumn(j);
 							// 取得body內容第一行位置, 因為日期合併兩格, 所以 + 2
 							setBodyStart(i + 2);
-						} else if (getCellValue(wb, curCell).equals("員工")) {
+						} else if (getCellValue(wb, curCell).equals("員編-姓名")) {
 							countOfFind++;
 							setEmployeeColumn(j);
 						} else if (getCellValue(wb, curCell).equals("上班")) {
@@ -153,7 +153,6 @@ public class HandlePink {
 					CellStyle curCellStyle = firstCell.getCellStyle();
 					if (curCellStyle != null) {
 					
-//						System.out.println("COlor : " + curCellStyle.getFillForegroundColor() );
 						// // 1. 是粉紅色
 						if (Short.compare(curCellStyle.getFillForegroundColor(), pinkValue) == 0) {
 							// 2. 上/ 下班有值
@@ -169,7 +168,6 @@ public class HandlePink {
 
 								Cell dateCell = curRow.getCell(getDateColumn());
 								Cell employeeCell = curRow.getCell(getEmployeeColumn());
-								
 				
 								// create Entity 
 								PinkPojo pinkPojo = new PinkPojo(getCellValue(workbook, dateCell),
@@ -180,7 +178,6 @@ public class HandlePink {
 
 								// Add to list 
 								pinkPojos.add(pinkPojo);
-							
 							}
 
 						}
