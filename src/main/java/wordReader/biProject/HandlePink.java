@@ -153,7 +153,7 @@ public class HandlePink {
 					CellStyle curCellStyle = firstCell.getCellStyle();
 					if (curCellStyle != null) {
 					
-						// // 1. 是粉紅色
+						// 1. 是粉紅色
 						if (Short.compare(curCellStyle.getFillForegroundColor(), pinkValue) == 0) {
 							// 2. 上/ 下班有值
 							Cell onCell = curRow.getCell(getOnColumn());

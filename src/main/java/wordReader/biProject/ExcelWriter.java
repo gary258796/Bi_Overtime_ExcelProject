@@ -693,11 +693,15 @@ public class ExcelWriter {
 	   private static int[] returnTotalTime( int admitHr ) {
 		   
 		   int[] resultHours = {0,0,0} ;
-		   	   	 
 		   int oneDayHour = 8; 
-		   if( admitHr < 6 || admitHr > 8 ) oneDayHour = admitHr ; 
-
 		   
+		   // 如果不在6~8 就把onedayHour 設定為admitHr
+		   if( admitHr == 3 || admitHr == 4 ) {
+			   oneDayHour = 4 ;
+		   }else if( admitHr < 6 || admitHr > 8 ) {
+			   oneDayHour = admitHr ; 
+		   }
+
 		   if( oneDayHour >= 2 ) {
 			   oneDayHour = oneDayHour - 2 ; 
 			   resultHours[0] = 2 ; 
