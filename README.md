@@ -19,4 +19,6 @@ such as:
 This project is for:
  1. using java to generate overtime excel instead of by hand in order to decrease spending time on.
  2. practice using apache poi and maven for myself. 
+ 3. Due to the reason that this project is for , the code is super related to the format of the company's overtime apply word.
+    So it's definitely too customized for the code to be reuse on other projects. 
  
