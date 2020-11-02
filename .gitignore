@@ -1,4 +1,7 @@
 target/
 .idea
 .settings
+.project
+.classpath
+biProject.iml
 target.zip
