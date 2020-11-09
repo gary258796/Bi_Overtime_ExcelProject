@@ -285,7 +285,7 @@ public class ExcelWriter {
 	   	 if( data.isSunday()) yellowBack = true ; 
 	   	 
 	   	 // 編號
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum++, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum++, false);
 	   	 cell.setCellValue(row.getRowNum()); // error ?
 	   	 
 	   	 // 部門
@@ -353,7 +353,7 @@ public class ExcelWriter {
 	   	 cellNum = cellNum + 1 ;
 	   	 
 	   	 // 使用方式
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 	   	 cell.setCellValue(data.getRestOrMoney()); 
 	   	 cellNum = cellNum + 1 ;
 	   	 
@@ -595,7 +595,7 @@ public class ExcelWriter {
 		   	 if( data.isSunday()) yellowBack = true ; 
 		   	 
 		   	 // 編號
-		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum++, yellowBack);
+		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum++, false);
 		   	 cell.setCellValue(row.getRowNum()); 
 		   	 
 		   	 // 部門
@@ -641,7 +641,7 @@ public class ExcelWriter {
 		   	 cellNum = cellNum + 1 ;
 		   	
 		   	 // 使用方式
-		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 		   	 cell.setCellValue(data.getRestOrMoney()); 
 		   	 cellNum = cellNum + 1 ;
 		   	 
@@ -687,7 +687,7 @@ public class ExcelWriter {
 	  
 	   /**
 	   * 如果承認工時為6,7,8 就算一天八小時. 其他時數為多少就是多少
-	   * @param admitHours
+	   * @param
 	   * @return
 	   */
 	   private static int[] returnTotalTime( int admitHr ) {
