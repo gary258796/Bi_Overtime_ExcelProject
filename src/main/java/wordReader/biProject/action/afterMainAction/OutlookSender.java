@@ -1,4 +1,4 @@
-package wordReader.biProject;
+package wordReader.biProject.action.afterMainAction;
 
 import java.io.IOException;
 import java.util.Properties;

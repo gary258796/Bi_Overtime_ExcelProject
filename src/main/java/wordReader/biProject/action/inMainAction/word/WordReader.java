@@ -1,4 +1,4 @@
-package wordReader.biProject;
+package wordReader.biProject.action.inMainAction.word;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,7 +51,7 @@ public class WordReader {
    	 		   System.out.println("Extra Msg : " + getExtraMsg(bodyString));
    	 		   System.out.println("Has Photo : " +  isImageInOrNot( document.getDocument().toString()) ) ;
    	 	   }
-   	 	   
+
    	 	   // Write data to dataPojo 
    	 	   dataPojo = new DataPojo() ;
    	 	   dataPojo.setDate( getApplyDate(bodyString) );
@@ -115,22 +115,20 @@ public class WordReader {
         	String endMinString = endString.substring(endString.indexOf(':') + 1, endString.length()) ;
         	dataPojo.setEndHour( Integer.parseInt(endHourString));
         	dataPojo.setEndMin( Integer.parseInt(endMinString));
-        	
-        	// 計算申請時數
-        	// 時數 = 迄HR - 起HR
-        	int endHour = Integer.valueOf(endHourString);
-        	int startHour = Integer.valueOf(startHourString) ;
-        	int endMin = Integer.valueOf(endMinString);
-        	int startMin = Integer.valueOf(startMinString) ;
-        	// 申請時數 = 總共工時(結束的小時 - 開始的小時
-        	int applyHour = endHour - startHour ;
-        	dataPojo.setApplyHour(Integer.toString(applyHour));
+
+        	int endHour = Integer.parseInt(endHourString);
+        	int startHour = Integer.parseInt(startHourString) ;
+        	int endMin = Integer.parseInt(endMinString);
+        	int startMin = Integer.parseInt(startMinString) ;
+			Time startTime = new Time(startHour, startMin);
+			Time endTime = new Time(endHour, endMin);
+        	// 申請時數 = 總共工時(結束時間 - 開始時間)
+			Time applyHour = Time.diffTime(startTime, endTime);
+        	dataPojo.setApplyHour( applyHour.getHours() + "時:" +  applyHour.getMinutes() + "分");
         	
         	// 計算承認工時
         	// 中午12~1點 以及 晚上6~7點是不算時數的(吃飯時間)
-        	Time startTime = new Time(startHour, startMin);
-        	Time endTime = new Time(endHour, endMin);
-        	Time admitTime = Time.getTotalHourNMins(startTime, endTime);
+			Time admitTime = Time.getTotalHourNMins(startTime, endTime);
         	if( admitTime.getMinutes() >= 30 ) {
         		// 超過30分鐘 直接進位多一小時
         		admitTime.setHours( admitTime.getHours() + 1 );
@@ -148,9 +146,6 @@ public class WordReader {
     // 去除String裡面空白換行等字元
     private static String cleanString(String unCleanString) { 
     	return unCleanString.trim().replaceAll("\r\n|\r|\n|\t|\f|\b", "") ;
-    	
-    	//.replaceAll("\\s+","")
-//		.replaceAll("[　*| *| *|//s*]*", "").replaceAll("_", "")
     }
     
 

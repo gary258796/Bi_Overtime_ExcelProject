@@ -1,4 +1,4 @@
-package wordReader.biProject;
+package wordReader.biProject.action.afterMainAction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,8 +17,6 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.RegionUtil;
-import org.apache.poi.util.StringUtil;
-import org.apache.poi.util.TempFile;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import wordReader.biProject.excelFormat.CusCell;
 import wordReader.biProject.excelFormat.CusCellStyle;
@@ -26,10 +24,10 @@ import wordReader.biProject.model.DataPojo;
 import wordReader.biProject.model.PinkPojo;
 
 public class ExcelWriter {
-	
-	 private static List<String> CELL_HEADS; //列頭
-	 private static List<String> PINK_HEADS; //列頭
-	 private static List<String> BELOW_HEADS; 
+
+	 private static final List<String> CELL_HEADS; //列頭
+	 private static final List<String> PINK_HEADS; //列頭
+	 private static final List<String> BELOW_HEADS;
 	 
 	// 欄位名稱
 	 static{ 
@@ -145,35 +143,43 @@ public class ExcelWriter {
 	  	 int offset = 0 ; 
 	  	 // 設置 Column 寬度
 	  	 for (int i=0; i<CELL_HEADS.size(); i++) {
-	  		 if( CELL_HEADS.get(i) == "專案") {
-	  			 sheet.setColumnWidth(i, 3500);
-	  			 offset = offset + 1 ; 
-	  			 sheet.setColumnWidth(i + offset, 3500);
-	  		 } else if( CELL_HEADS.get(i) == "事由" ) {
-	  			 sheet.setColumnWidth(i + offset, 4000);
-	  			 offset = offset + 1 ;
-	  			 sheet.setColumnWidth(i + offset, 4000);
-	  			 offset = offset + 1 ;
-	  			 sheet.setColumnWidth(i + offset, 13000);
-	  		 }
-	  		 else if( CELL_HEADS.get(i) == "(起)" ||  CELL_HEADS.get(i) == "(迄)" ) {
-	  			 sheet.setColumnWidth(i, 2500);
-	  		 } 	  		 
-	  		 else if ( CELL_HEADS.get(i) == "實際上班時間" ||  CELL_HEADS.get(i) == "實際下班時間" 
-	  				 || CELL_HEADS.get(i) == "對照申請時數" || CELL_HEADS.get(i) == "缺卡內容" ) {
-	  			 sheet.setColumnWidth(i + offset, 7000);
-	  		 }
-	  		 else if ( CELL_HEADS.get(i) == "承認工時" ||  CELL_HEADS.get(i) == "使用方式" ) {
-	  			 sheet.setColumnWidth(i + offset, 5000);
-	  		 }
-	  		 else if ( CELL_HEADS.get(i) == "備註") {
-	  			sheet.setColumnWidth(i + offset, 15000);
-	  		 }
-	  		 else if ( CELL_HEADS.get(i) == "部門" ) {
-	  			sheet.setColumnWidth(i, 10000);
-	  		 }
-	  		 else 
-	  			 sheet.setColumnWidth(i, 5000);
+			 switch (CELL_HEADS.get(i)) {
+				 case "專案":
+					 sheet.setColumnWidth(i, 3500);
+					 offset = offset + 1;
+					 sheet.setColumnWidth(i + offset, 3500);
+					 break;
+				 case "事由":
+					 sheet.setColumnWidth(i + offset, 4000);
+					 offset = offset + 1;
+					 sheet.setColumnWidth(i + offset, 4000);
+					 offset = offset + 1;
+					 sheet.setColumnWidth(i + offset, 13000);
+					 break;
+				 case "(起)":
+				 case "(迄)":
+					 sheet.setColumnWidth(i, 2500);
+					 break;
+				 case "實際上班時間":
+				 case "實際下班時間":
+				 case "對照申請時數":
+				 case "缺卡內容":
+					 sheet.setColumnWidth(i + offset, 7000);
+					 break;
+				 case "承認工時":
+				 case "使用方式":
+					 sheet.setColumnWidth(i + offset, 5000);
+					 break;
+				 case "備註":
+					 sheet.setColumnWidth(i + offset, 15000);
+					 break;
+				 case "部門":
+					 sheet.setColumnWidth(i, 10000);
+					 break;
+				 default:
+					 sheet.setColumnWidth(i, 5000);
+					 break;
+			 }
 	  	 }
 	  	 // 設置默認行高
 	  	 sheet.setDefaultRowHeight((short) 400);
@@ -249,7 +255,7 @@ public class ExcelWriter {
 	  	 // 寫入第一行各列的數據
 	  	 Row head = sheet.createRow(4);
 	  	 for (int i = 0; i < CELL_HEADS.size(); i++) {
-	  		Cell cell = null ; 
+	  		Cell cell;
 	  		 if( i == 10 ) {
 	  			 cell = head.createCell(i+1); // 11
 	  		 } 
@@ -336,10 +342,10 @@ public class ExcelWriter {
 	   	 offset = offset + 2 ; 
 	   	 
 	   	 // 承認工時
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 //	   	redFontCellStyle
 	   	 if(data.getAdmitTime() != null) {
-	   		 if( Integer.parseInt(data.getAdmitTime()) > 8  || Integer.parseInt(data.getAdmitTime()) < 6 ) {
+	   		 if( redRule(data.getAdmitTime()) ) {
 	   			 // 要標紅色
 		   		 CellStyle redFontCellStyle  = CusCellStyle.redFontCellStyle(workbook) ;
 		   		 cell.setCellStyle(redFontCellStyle);
@@ -358,29 +364,29 @@ public class ExcelWriter {
 	   	 cellNum = cellNum + 1 ;
 	   	 
 	   	 // 實際上班時間
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 	   	 cell.setCellValue(data.getActualStartTime()); 
 	   	 cellNum = cellNum + 1 ;
 	   	 
 	   	 // 實際下班時間
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 	   	 cell.setCellValue(data.getActualEndTime()); 
 	   	 cellNum = cellNum + 1 ;
 	   	 
 	   	 // 對照申請時數
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 	   	 String hourString = String.valueOf((data.getDifferTotalTime()/60)) ;
 	   	 String minString = String.valueOf(data.getDifferTotalTime()%60) ;
 	   	 cell.setCellValue(hourString+"時"+minString+"分"); 
 	   	 cellNum = cellNum + 1 ;
 	   	 
 	   	 // 缺卡內容
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 	   	 cell.setCellValue(data.getMissContent()); 
 	   	 cellNum = cellNum + 1 ;
 
 	   	 // 備註
-	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+	   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 	   	 cell.setCellValue(data.getExtraMsg()); 
 //	   	 cellNum = cellNum + 1 ;
 	   	 
@@ -409,7 +415,7 @@ public class ExcelWriter {
 				      if( row != null) {
 					      Cell cell = row.getCell(columnIndex);
 					      if( cell != null ) {
-						      if( cell.getStringCellValue() == "編號" ) {
+						      if(cell.getStringCellValue().equals("編號")) {
 //						    	  System.out.println("編號 在第" + (rowIndex+1) + "行" ) ;
 						    	  rowCountFirst = rowIndex + 1 ; 
 						      }  
@@ -427,13 +433,13 @@ public class ExcelWriter {
 				  int idn = 1 ; // 編號初始號碼
 				  boolean getNameTime = true ;
 				  
-				  Cell baseCell = null ;
+				  Cell baseCell;
 				  Cell baseIdnCell = null ;
 				  String baseName = "" ;
 				  int baseIndex = 0 ;
 				  
-				  Cell nextCell = null  ;
-				  String nextName = "" ;
+				  Cell nextCell;
+				  String nextName;
 				  
 	 			  for( int i = rowCountFirst ; i < rowCountLast ; i++ ) {
 	 				  
@@ -487,7 +493,7 @@ public class ExcelWriter {
 	 	 							 CellRangeAddress cra = new CellRangeAddress(baseIndex,i,0,0) ;
 	 	 							 sheet.addMergedRegion(cra) ;
 	 	 						  } catch (Exception e) {
-	 	 							  System.out.println(e);
+	 	 							  System.out.println(e.getMessage());
 	 	 							  System.out.println("在合併儲存格,範圍沒有包含2個以上的cells導致,當加班筆數少於一定數量會有這個例外,如果結果正確可以忽略");
 	 	 						  } 
 	 	 						  
@@ -499,7 +505,7 @@ public class ExcelWriter {
 				  }
 				  
 			  } catch (Exception e) {
-				  System.out.println(e);
+				  System.out.println(e.getMessage());
 			  }
 			  
 		  }
@@ -547,7 +553,7 @@ public class ExcelWriter {
 		  	 Row head = sheet.createRow(rowNum);
 		  	 head.setHeight((short) 1500); // title row height : 800 
 		  	 for (int i = 0; i < BELOW_HEADS.size(); i++) {
-			  		 Cell cell = null ; 
+			  		 Cell cell;
 			  		 
 			  		 if( i == 4 ) {
 			  			 cell = head.createCell(i+1); // 11
@@ -560,7 +566,7 @@ public class ExcelWriter {
 	  			 
 			  		 if( i < 7 )
 			  			 cell.setCellStyle(cellStyle);
-			  		 else if( i >= 7 && i <= 10 ) {
+			  		 else if(i <= 10) {
 			  			 cell.setCellStyle(secondCellStyle);
 			  		 }
 			  		 else if( i == 11) {
@@ -674,16 +680,14 @@ public class ExcelWriter {
 		   	 
 		   	 
 		   	 // 空白
-		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
+		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
 		   	 cell.setCellValue(""); 
 		   	 cellNum = cellNum + 1 ;
 		   	 
 		   	 // 承認天數(創建時,先設定為空白,等全部資料好了之後 同個人的會合併計算
-		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, yellowBack);
-		   	 cell.setCellValue(""); 
-		   	 cellNum = cellNum + 1 ;
-		 
-	  }
+		   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum + offset, false);
+		   	 cell.setCellValue("");
+	   }
 	  
 	   /**
 	   * 如果承認工時為6,7,8 就算一天八小時. 其他時數為多少就是多少
@@ -730,7 +734,7 @@ public class ExcelWriter {
 		   Cell cell3 = row.getCell(11) ;
 		   Cell cell4 = row.getCell(12) ;
 		   
-		   int baseForRestHour = cell4 == null ? 0 : cell4.getStringCellValue() != "" ? Integer.parseInt(cell4.getStringCellValue()) : 0;
+		   int baseForRestHour = cell4 == null ? 0 : !cell4.getStringCellValue().equals("") ? Integer.parseInt(cell4.getStringCellValue()) : 0;
 		   
 		   if( cell1 != null && cell2 != null && cell3 != null ) {
 			   return baseForRestHour + Integer.parseInt(cell1.getStringCellValue()) + Integer.parseInt(cell2.getStringCellValue()) 
@@ -748,24 +752,20 @@ public class ExcelWriter {
 	    * @param lastRowNumofTable2
 	    */
 	   private static void handleTable2Idn(Sheet sheet, int startOfTable2BodyRowNum , int lastRowNumofTable2) {
-		   int nameColumnIndex = 2 ; 						// 名稱欄位 在第2行 
-		   int rowCountFirst = startOfTable2BodyRowNum ; 	// 第二個表 開始的列數
-		   int rowCountLast = lastRowNumofTable2 ; 			// 第二個表結束的列數
-		   
+		   int nameColumnIndex = 2 ; 						// 名稱欄位 在第2行
+
 		   // basic needs 
 		   int idn = 1 ; 
 		   boolean getNameTime = true ; 
-		   Cell baseCell = null ;
+		   Cell baseCell;
 		   Cell baseIdnCell = null ;
-		   Cell baseAdmitDaysCell = null  ;
 		   String baseName = "" ;
 		   int baseIndex = 0 ;
-		   Cell nextCell = null  ;
-		   String nextName = "" ;
-		   int admitHours = 0 ; 
-		   
+		   Cell nextCell;
+		   String nextName;
+
 		   try {
-			   for( int i = rowCountFirst ; i < rowCountLast ; i++ ) {
+			   for(int i = startOfTable2BodyRowNum; i < lastRowNumofTable2; i++ ) {
 	 				  if( getNameTime ) { // 取得名稱
 	 					  Row row = sheet.getRow(i);
 	 				      if( row != null) {
@@ -780,7 +780,7 @@ public class ExcelWriter {
 	 				  }
 	 				  
 	 				  if( !getNameTime ) { 									// 找到不同名稱之前,不會將開關重新開啟
-	 					  if( (i + 1) <  rowCountLast ) { 					// 如果下一個row還未超出最大行數
+	 					  if( (i + 1) < lastRowNumofTable2) { 					// 如果下一個row還未超出最大行數
 	 	 					  Row row = sheet.getRow(i + 1);
 	 	 				      if( row != null ) {
 	 	 				    	  nextCell = row.getCell(nameColumnIndex);  // baseCell 的下一列的名稱cell
@@ -821,7 +821,7 @@ public class ExcelWriter {
 	 				  
 			   }
 		   } catch (Exception e) {
-			   System.out.println(e);
+			   System.out.println(e.getMessage());
 		   }
 	   }
 	   
@@ -837,33 +837,28 @@ public class ExcelWriter {
 		   
 		   int nameColumnIndex = 2 ; 
 		   int restOrMoneyColumnIndex = 8;
-		   int admitHoursColumnIndex = 14; 
-		   int rowCountFirst = startOfTable2BodyRowNum ; 
-		   int rowCountLast = lastRowNumofTable2 ; 
-		   
+		   int admitHoursColumnIndex = 14;
+
 		   // basic needs 
-		   int idn = 1 ; 
-		   boolean getNameTime = true ; 
-		   Cell baseCell = null ;
-		   Cell baseIdnCell = null ;
+		   boolean getNameTime = true ;
+		   Cell baseCell;
 		   Cell baseAdmitDaysCell = null  ;
 		   Cell baseRestOrMoneyCell = null ;
 		   String baseRestOrMoney = "" ; 
 		   String baseName = "" ;
 		   int baseIndex = 0 ;
-		   Cell nextCell = null  ;
-		   String nextName = "" ;
-		   String nextRestOrMoney = "";
+		   Cell nextCell;
+		   String nextName;
+		   String nextRestOrMoney;
 		   int admitHours = 0 ; 
 		   try { 
-			   for( int i = rowCountFirst ; i < rowCountLast ; i++ ) {
+			   for(int i = startOfTable2BodyRowNum; i < lastRowNumofTable2; i++ ) {
 	 				  if( getNameTime ) {											// 取得名稱啟動
 	 					  Row row = sheet.getRow(i);
 	 				      if( row != null) {
 	 					      baseCell = row.getCell(nameColumnIndex);				// 取名稱那個欄位的cell
 	 					      if( baseCell != null ) {
-	 					    	  baseIdnCell = row.getCell(0); 					// 這個名稱的編號cell
-	 					    	  baseAdmitDaysCell = row.getCell(admitHoursColumnIndex) ; // 這個base的承認天數cell
+								  baseAdmitDaysCell = row.getCell(admitHoursColumnIndex) ; // 這個base的承認天數cell
 	 					    	  baseRestOrMoneyCell = row.getCell(restOrMoneyColumnIndex); // Base的使用方式cell
 	 					    	  baseRestOrMoney = baseRestOrMoneyCell.getStringCellValue();// 這個名稱這個行數的 使用方式
 	 					    	  baseName = baseCell.getStringCellValue() ; 		// 取得名稱
@@ -876,7 +871,7 @@ public class ExcelWriter {
 	 				  }
 	 				  
 	 				  if( !getNameTime ) {											// 找到不同名稱之前,不會將開關重新開啟
-	 					  if( (i + 1) <  rowCountLast ) {							// 如果下一個row還未超出最大行數
+	 					  if( (i + 1) < lastRowNumofTable2) {							// 如果下一個row還未超出最大行數
 	 	 					  Row row = sheet.getRow(i + 1);						// 取得下一行
 	 	 				      if( row != null ) {
 	 	 				    	  nextCell = row.getCell(nameColumnIndex);			// 取得下一行的名稱cell
@@ -899,7 +894,7 @@ public class ExcelWriter {
  	 						  try {
  					    		  mergeModule(i, baseIndex, sheet, baseRestOrMoneyCell,baseAdmitDaysCell, baseRestOrMoney, admitHours) ; 
  	 						  } catch (Exception e) {
- 	 							  System.out.println(e);
+ 	 							  System.out.println(e.getMessage());
  	 							  System.out.println("在合併儲存格,範圍沒有包含2個以上的cells導致,當加班筆數少於一定數量會有這個例外,如果結果正確可以忽略");
  	 						  } 
 	 					  }
@@ -933,7 +928,7 @@ public class ExcelWriter {
 		   int days = inhours / 8 ; 
 		   int hours = inhours % 8 ; 
 		   
-		   return Integer.toString(days) + "天" + Integer.toString(hours) + "時" ;
+		   return days + "天" + hours + "時" ;
 	   }
 
 	   // Sheet2 Table1
@@ -1000,10 +995,30 @@ public class ExcelWriter {
 					   	 cell.setCellValue(pinkPojo.getOffTime() == null ? "" : pinkPojo.getOffTime()); 
 					   	 
 					   	 // 缺卡內容
-					   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum++, false);
+					   	 cell = CusCell.createCellWithAlignment(workbook, row, cellNum, false);
 					   	 cell.setCellValue(pinkPojo.getMissContent() == null ? "" : pinkPojo.getMissContent()); 
 			  	 }
 		  }
 
+	/**
+	 *
+ 	 * @param admitTime
+	 * @return
+	 */
+	private static Boolean redRule(String admitTime) {
+		int admitHour = Integer.parseInt(admitTime);
+		if( admitHour > 9 )
+			return true;
+
+		switch ( Integer.parseInt(admitTime) ){
+			case 1:
+			case 2:
+			case 5:
+			case 9:
+				return true;
+			default:
+				return false;
+		}
+	}
 	
 }

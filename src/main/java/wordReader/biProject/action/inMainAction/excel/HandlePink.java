@@ -1,13 +1,10 @@
-package wordReader.biProject;
+package wordReader.biProject.action.inMainAction.excel;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -41,10 +38,11 @@ public class HandlePink {
 		File dir = new File(wordsPath);
 		File[] files = dir.listFiles(fileFilter);
 		
-		if (files.length == 0)
+		if (files == null || files.length == 0)
 			throw new ExcelException("路徑底下沒有任一 .xls 檔案.");
 		else if (files.length == 1) { // 只接受路徑底下一個.xls file
 
+			// 讀入該檔案
 			Workbook wb = WorkbookFactory.create(new File(wordsPath + files[0].getName()));
 			
 			// 取得日期、員編-姓名、上班、下班的column
@@ -57,25 +55,20 @@ public class HandlePink {
 				return null ;
 			else {
 				// 排序
-		        Collections.sort(pinkPojos,
-		        	      new Comparator<PinkPojo>() {
-		        	          public int compare(PinkPojo o1, PinkPojo o2) {
-		        	          	
-		        	          	if( o1.getEmployee().compareTo(o2.getEmployee()) == 0 ) {
-		        	          		// 名稱相同  按照日期先後順序
-		        	          		return o1.getDate().compareTo( o2.getDate()) ;
-		        	          	}
-		        	          	
-		        	              return o1.getEmployee().compareTo(o2.getEmployee());
-		        	          }
-		        	      });
-		        
-		        
+		        pinkPojos.sort((o1, o2) -> {
+					if (o1.getEmployee().compareTo(o2.getEmployee()) == 0) {
+						// 名稱相同  按照日期先後順序
+						return o1.getDate().compareTo(o2.getDate());
+					}
+
+					return o1.getEmployee().compareTo(o2.getEmployee());
+				});
+
 				// 回傳資料
 				return pinkPojos;
 			}
 		} else {
-			throw new StopProgramException("路徑底下有超過一個.xls的檔案");
+			throw new StopProgramException("路徑底下有超過一個.xls的檔案. 請將多餘的檔案清除.");
 		}
 
 	}
@@ -83,10 +76,9 @@ public class HandlePink {
 	/**
 	 * 尋找 日期、員工、上班、下班的欄位index 並且存到global variables
 	 * 
-	 * @param wb
-	 * @throws ExcelException
+	 * @param wb :
 	 */
-	public void findFieldsColumn(Workbook wb) throws ExcelException {
+	public void findFieldsColumn(Workbook wb) {
 		
 		Sheet sheet = wb.getSheetAt(0);
 		int rowCountLast = getLastRowWithData(sheet); // rowCount 的最大值
@@ -103,20 +95,25 @@ public class HandlePink {
 					Cell curCell = curRow.getCell(j);
 					if (curCell != null) {
 						// 找到日期
-						if (getCellValue(wb, curCell).equals("日期")) {
-							countOfFind++;
-							setDateColumn(j);
-							// 取得body內容第一行位置, 因為日期合併兩格, 所以 + 2
-							setBodyStart(i + 2);
-						} else if (getCellValue(wb, curCell).equals("員編-姓名")) {
-							countOfFind++;
-							setEmployeeColumn(j);
-						} else if (getCellValue(wb, curCell).equals("上班")) {
-							countOfFind++;
-							setOnColumn(j);
-						} else if (getCellValue(wb, curCell).equals("下班")) {
-							countOfFind++;
-							setOffColumn(j);
+						switch (getCellValue(wb, curCell)) {
+							case "日期":
+								countOfFind++;
+								setDateColumn(j);
+								// 取得body內容第一行位置, 因為日期合併兩格, 所以 + 2
+								setBodyStart(i + 2);
+								break;
+							case "員編-姓名":
+								countOfFind++;
+								setEmployeeColumn(j);
+								break;
+							case "上班":
+								countOfFind++;
+								setOnColumn(j);
+								break;
+							case "下班":
+								countOfFind++;
+								setOffColumn(j);
+								break;
 						}
 
 						if (countOfFind >= 4)
@@ -129,11 +126,10 @@ public class HandlePink {
 
 	/**
 	 * 取得所有粉紅色列的資訊存到pinkPojos
-	 * @param workbook
-	 * @throws ExcelException
-	 * @throws IOException 
+	 * @param workbook :
+	 * @throws IOException :
 	 */
-	public List<PinkPojo> findPinkRow(Workbook workbook) throws ExcelException, IOException {
+	public List<PinkPojo> findPinkRow(Workbook workbook) throws IOException {
 		
 		List<PinkPojo> pinkPojos = new ArrayList<>();
 		Sheet sheet = workbook.getSheetAt(0);
@@ -154,16 +150,16 @@ public class HandlePink {
 					if (curCellStyle != null) {
 					
 						// 1. 是粉紅色
-						if (Short.compare(curCellStyle.getFillForegroundColor(), pinkValue) == 0) {
+						if (curCellStyle.getFillForegroundColor() == pinkValue) {
 							// 2. 上/ 下班有值
 							Cell onCell = curRow.getCell(getOnColumn());
 							Cell offCell = curRow.getCell(getOffColumn());
-							if (getCellValue(workbook, onCell) != "" || getCellValue(workbook, offCell) != "") {
+							if (!getCellValue(workbook, onCell).equals("") || !getCellValue(workbook, offCell).equals("")) {
 								
 								String missContent = "";
-								if (getCellValue(workbook, onCell) == "")
+								if (getCellValue(workbook, onCell).equals(""))
 									missContent = "上班";
-								else if (getCellValue(workbook, offCell) == "")
+								else if (getCellValue(workbook, offCell).equals(""))
 									missContent = "下班";
 
 								Cell dateCell = curRow.getCell(getDateColumn());
@@ -196,9 +192,9 @@ public class HandlePink {
 	
     	int[] ret_int = new int[2];
     	
-    	if( time == "" ) { // 為空
+    	if(time.equals("")) { // 為空
         	ret_int[0] = 0 ;
-        	ret_int[1] = 0 ;  
+        	ret_int[1] = 0 ;
     	}else { // 不為空
     		int index = time.indexOf(":") ;
     		
@@ -213,7 +209,7 @@ public class HandlePink {
             }
     		
     		
-        	ret_int[1] = Integer.parseInt(time.substring(index+1, time.length())) ;  
+        	ret_int[1] = Integer.parseInt(time.substring(index+1)) ;
     	}
 
 		return ret_int;
@@ -222,12 +218,11 @@ public class HandlePink {
 	/**
 	 * 取得Cell的值, return一律轉為String
 	 * 
-	 * @param wb
-	 * @param cell
-	 * @return
-	 * @throws ExcelException
+	 * @param wb:
+	 * @param cell:
+	 * @return :
 	 */
-	public String getCellValue(Workbook wb, Cell cell) throws ExcelException {
+	public String getCellValue(Workbook wb, Cell cell) {
 
 		FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
 
@@ -265,11 +260,9 @@ public class HandlePink {
 		// 取得Excel存放路徑 (和word 相同)
 		String pinkString = PropsHandler.getter("pinkValue");
 		
-		int value = Integer.valueOf(pinkString) ; 
-		Short pinkNum = (short) value;
-		Short pinkValue = new Short(pinkNum);
-		
-		return pinkValue ;
+		int value = Integer.parseInt(pinkString) ;
+
+		return (Short) (short) value;
 	}
 	
 	
@@ -319,11 +312,6 @@ public class HandlePink {
 
 	public boolean isCellBlank(Cell c) {
 		return (c == null || c.getCellType() == CellType.BLANK);
-	}
-
-	public boolean isCellEmpty(Cell c) {
-		return (c == null || c.getCellType() == CellType.BLANK
-				|| (c.getCellType() == CellType.STRING && c.getStringCellValue().isEmpty()));
 	}
 
 	// Getter and Setter

@@ -5,6 +5,7 @@ import wordReader.biProject.cusError.ExcelException;
 
 public class Start {
 
+	// App Start Entry
 	public static void main(String[] args) throws ExcelException, ParseException {
 
 		App startApp = new App() ; 
