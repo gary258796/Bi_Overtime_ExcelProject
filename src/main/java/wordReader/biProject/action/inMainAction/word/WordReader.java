@@ -26,7 +26,7 @@ public class WordReader {
     @SuppressWarnings("resource")
 	public static DataPojo readWord2007Docx(String filePathDocx) throws IOException{ 
 
-    	DataPojo dataPojo = null ; 
+    	DataPojo dataPojo ;
     	
    	 	try {
    	       // 取得該word的內容 以及 xmlString
@@ -76,7 +76,7 @@ public class WordReader {
 			
 			// 有問題檔案 丟到設定路徑底下
 	        String destination = PropsHandler.getter("errorWordsPath") ;
-        	String fileName = filePathDocx.substring(filePathDocx.lastIndexOf("/"), filePathDocx.length());
+        	String fileName = filePathDocx.substring(filePathDocx.lastIndexOf("/"));
         	
 			FileChannel in = new FileInputStream( filePathDocx ).getChannel();
         	FileChannel out = new FileOutputStream( destination+fileName ).getChannel();
@@ -104,7 +104,7 @@ public class WordReader {
         	// 設定起始 小時 與分鐘 方便後面計算
         	String startString = dataPojo.getStartTime() ;
         	String startHourString = startString.substring(0, startString.indexOf(':')) ;
-        	String startMinString = startString.substring(startString.indexOf(':') + 1, startString.length()) ;
+        	String startMinString = startString.substring(startString.indexOf(':') + 1) ;
         	dataPojo.setEndDay( dataPojo.getStartDay() );
         	dataPojo.setStartHour(Integer.parseInt(startHourString));
         	dataPojo.setStartMin(Integer.parseInt(startMinString));
@@ -112,7 +112,7 @@ public class WordReader {
         	// 分開結束日期 與 時間
         	String endString = dataPojo.getEndTime();
         	String endHourString = endString.substring( 0, endString.indexOf(':')) ;
-        	String endMinString = endString.substring(endString.indexOf(':') + 1, endString.length()) ;
+        	String endMinString = endString.substring(endString.indexOf(':') + 1) ;
         	dataPojo.setEndHour( Integer.parseInt(endHourString));
         	dataPojo.setEndMin( Integer.parseInt(endMinString));
 
@@ -124,7 +124,9 @@ public class WordReader {
 			Time endTime = new Time(endHour, endMin);
         	// 申請時數 = 總共工時(結束時間 - 開始時間)
 			Time applyHour = Time.diffTime(startTime, endTime);
-        	dataPojo.setApplyHour( applyHour.getHours() + "時:" +  applyHour.getMinutes() + "分");
+			String hourStr = applyHour.getHours() < 10 ? "0" + applyHour.getHours() : Integer.toString(applyHour.getHours());
+			String minStr = applyHour.getMinutes() < 10 ? "0" + applyHour.getMinutes() : Integer.toString(applyHour.getMinutes());
+        	dataPojo.setApplyHour( hourStr + "時:" +  minStr + "分");
         	
         	// 計算承認工時
         	// 中午12~1點 以及 晚上6~7點是不算時數的(吃飯時間)
@@ -159,7 +161,7 @@ public class WordReader {
 
     	String yearString = dateString.substring(0, dateString.indexOf('/')) ; 
     	String monthString = dateString.substring( dateString.indexOf('/') + 1, nthOccurrence(dateString, "/", 2) ) ;
-    	String dayString = dateString.substring( dateString.lastIndexOf('/') + 1, dateString.length() ) ;
+    	String dayString = dateString.substring( dateString.lastIndexOf('/') + 1) ;
 
     	if( Integer.parseInt(monthString) < 10 ) {
     		monthString = "0" + monthString ; 
@@ -202,7 +204,7 @@ public class WordReader {
     	
     	String yearString = dateString.substring(0, dateString.indexOf('/')) ; 
     	String monthString = dateString.substring( dateString.indexOf('/') + 1, nthOccurrence(dateString, "/", 2) ) ;
-    	String dayString = dateString.substring( dateString.lastIndexOf('/')+ 1, dateString.length() ) ;
+    	String dayString = dateString.substring( dateString.lastIndexOf('/')+ 1 ) ;
     	
     	if( Integer.parseInt(monthString) < 10 ) {
     		monthString = "0" + monthString ; 
@@ -291,13 +293,8 @@ public class WordReader {
     
     // Ｗord 有無上傳圖片
     private static boolean isImageInOrNot( String xmlString ) {
-    	
-    	if( xmlString.contains("圖片")) 
-    		return true ; 
-    	
-    	return false ; 
-    	
-    }
+		return xmlString.contains("圖片");
+	}
     
     // 共用的取得欄位部分
     
