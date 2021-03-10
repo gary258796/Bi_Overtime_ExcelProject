@@ -4,9 +4,13 @@ import wordReader.biProject.cusError.StopProgramException;
 import wordReader.biProject.cusError.WordFileException;
 import wordReader.biProject.model.DataPojo;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * 處理加班單word相關功能
+ */
 public interface WordHandle {
 
     /**
@@ -14,5 +18,15 @@ public interface WordHandle {
      * @return List of data from words
      */
     List<DataPojo> returnAllWordData() throws IOException, WordFileException, StopProgramException;
+
+    /**
+     * Return files under @path, which are docx format and not start with '~' and '.'
+     * @param path
+     * @return File array
+     */
+    List<File> getDocxFileUnderPath(String path);
+
+
+
 
 }
