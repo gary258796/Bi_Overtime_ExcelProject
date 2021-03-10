@@ -2,11 +2,13 @@ package wordReader.biProject.action.beforeMainAction;
 
 import org.apache.commons.configuration.ConfigurationException;
 import wordReader.biProject.util.PropsHandler;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+/**
+ * 程式開始之前要執行的事情
+ */
 public class BeforeMainImpl implements BeforeMain{
 
     /**
@@ -21,24 +23,21 @@ public class BeforeMainImpl implements BeforeMain{
         System.out.println( "產出Excel會在 : " + PropsHandler.getter("writePath")  + "底下");
         System.out.println( "無法處理的特殊(機車)Word會存到 : " + PropsHandler.getter("errorWordsPath")  + "底下");
         System.out.println( "通訊錄Excel(如果加班單沒有截圖,尋找那個人的Email用) : " + PropsHandler.getter("contactPath")  + "底下");
-        System.out.println( "目前設定之粉紅顏色對應號碼: " + PropsHandler.getter("pinkValue"));
         System.out.println( "**********************************************************************************");
         System.out.println();
     }
 
     /**
-     * 如果參數不正確，使用者可以選擇修改任何一個參數設定
+     * 如果參數不正確or需調整，使用者可以選擇修改任何一個參數設定
      */
     public void changeProperties() throws IOException, ConfigurationException {
 
         BufferedReader consoleInput=new BufferedReader(new InputStreamReader(System.in));
 
-        boolean change = false ;
-        char yesNo ;
+        boolean change = false ; // 是否選擇要修改
         while (true) {
-            System.out.println("請問有需要更改以上任一資訊嗎？(Y/N)");
-            yesNo = consoleInput.readLine().charAt(0);
-
+            System.out.println("請問有需要更改以上任一資訊嗎？(Y/N)"); // 問題
+            char yesNo = consoleInput.readLine().charAt(0); // 輸入的回答
             if (yesNo == 'Y') {
                 change = true;
                 break;
@@ -48,17 +47,13 @@ public class BeforeMainImpl implements BeforeMain{
                 System.out.println("\n 你是故意的還是在靠北我？");
         }
 
-        int chooseNum ;
-        while( change ) {
+        while( change ) { // 要修改
             System.out.println("需要修改哪個？");
-            System.out.println("1. 信箱&密碼 2. 加班單Word存放路徑 3. 產出Excel路徑 "
-                    + "4. 無法處理Word存放路徑 5. 通訊錄Excel路徑 6. 粉紅顏色(你應該不會用到,是給專業的屎用的) "
-                    + "7. 查看現在狀態 8. 結束");
+            System.out.println("1. 信箱&密碼 2. 加班單Word存放路徑 3. 產出Excel路徑 " + "4. 無法處理Word存放路徑 5. 通訊錄Excel路徑 " + "6. 查看現在狀態 7. 結束");
 
-            chooseNum = Integer.parseInt(consoleInput.readLine()) ;
+            int chooseNum = Integer.parseInt(consoleInput.readLine()) ; // 輸入的回答
             String inputString;
             switch (chooseNum) {
-
                 case 1:
                     System.out.print("請輸入信箱(輸入完成請按下Enter, 不更改直接按下Enter) : ");
                     String emailString = consoleInput.readLine();
@@ -88,14 +83,9 @@ public class BeforeMainImpl implements BeforeMain{
                     PropsHandler.setter("contactPath", inputString);
                     break;
                 case 6:
-                    System.out.print("請輸入new Pink Index(你調皮偷亂改後果很嚴重喔,輸入完成請按下Enter, 不更改直接按下Enter): ");
-                    int inputInt = Integer.parseInt(consoleInput.readLine());
-                    PropsHandler.setter("pinkValue", Integer.toString(inputInt));
-                    break;
-                case 7:
                     helloMsg();
                     break;
-                case 8:
+                case 7:
                     change=false;
                     break;
                 default:
@@ -103,7 +93,5 @@ public class BeforeMainImpl implements BeforeMain{
 
             }
         }
-
-        System.out.println("\n 產出Excel....");
     }
 }
