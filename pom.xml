@@ -85,12 +85,16 @@
   		<artifactId>commons-configuration</artifactId>
   		<version>1.10</version>
 	</dependency>
-      <dependency>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-          <version>30.1-jre</version>
-      </dependency>
-
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>30.1-jre</version>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.18</version>
+    </dependency>
   </dependencies>
 
   <build>

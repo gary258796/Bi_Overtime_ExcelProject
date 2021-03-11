@@ -68,5 +68,4 @@ public class App
 		System.out.println("程式結束.");
 		System.out.println("無法正確讀取的word文件會放到指定的路徑: " + PropsHandler.getter("errorWordsPath"));
     }
-
 }

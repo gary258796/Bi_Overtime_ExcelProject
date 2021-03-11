@@ -7,11 +7,7 @@ public class XlsFilesFilter implements FilenameFilter {
 
 	@Override
 	public boolean accept(File dir, String name) {
-	
-		if( name.endsWith(".xls") && !(name.startsWith("~") || name.startsWith(".") ) )
-			return true ; 
-		
-		return false;
+		return name.endsWith(".xls") && !(name.startsWith("~") || name.startsWith("."));
 	}
 
 }

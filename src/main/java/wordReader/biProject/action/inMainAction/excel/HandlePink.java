@@ -3,103 +3,84 @@ package wordReader.biProject.action.inMainAction.excel;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.*;
 import wordReader.biProject.cusError.ExcelException;
-import wordReader.biProject.cusError.StopProgramException;
-import wordReader.biProject.fileNameFilter.XlsFilesFilter;
 import wordReader.biProject.model.PinkPojo;
 import wordReader.biProject.util.PropsHandler;
 
+@Getter
+@Setter
 public class HandlePink {
 
-	private int bodyStart = 0; // 日期的row
-	private int dateColumn = 0; // 日期的column
-	private int employeeColumn = 0; // 員工的column
-	private int onColumn = 0; // 上班的column
-	private int offColumn = 0; // 下班的column
-	
-	public List<PinkPojo> handlePinkExcel() throws IOException, ExcelException, StopProgramException {
+	private int bodyStart; // 日期的row
+	private int dateColumn; // 日期的column
+	private int employeeColumn; // 員工的column
+	private int onColumn; // 上班的column
+	private int offColumn; // 下班的column
+	private Workbook workBook;
+
+	public HandlePink() {
+		this.bodyStart = 0;
+		this.dateColumn = 0;
+		this.employeeColumn = 0;
+		this.onColumn = 0;
+		this.offColumn = 0;
+	}
+
+	public List<PinkPojo> handlePinkExcel() throws IOException, ExcelException {
 
 		// 取得Excel存放路徑 (和word 相同)
-		String wordsPath = PropsHandler.getter("wordsPath");
+		String excelPath = PropsHandler.getter("wordsPath");
 
 		// 取得這路徑底下的 以.xls結尾之檔案
-		XlsFilesFilter fileFilter = new XlsFilesFilter();
-		File dir = new File(wordsPath);
-		File[] files = dir.listFiles(fileFilter);
-		
-		if (files == null || files.length == 0)
-			throw new ExcelException("路徑底下沒有任一 .xls 檔案.");
-		else if (files.length == 1) { // 只接受路徑底下一個.xls file
+		File xlsFile = ExcelHandler.getExcelFileUnderPath(excelPath);
 
-			// 讀入該檔案
-			Workbook wb = WorkbookFactory.create(new File(wordsPath + files[0].getName()));
-			
-			// 取得日期、員編-姓名、上班、下班的column
-			findFieldsColumn(wb);
+		// 讀入該檔案
+		workBook = WorkbookFactory.create(new File(excelPath + xlsFile.getName()));
 
-			// 取得pink row的資料
-			List<PinkPojo> pinkPojos = findPinkRow(wb);
+		// 取得日期、員編-姓名、上班、下班的column
+		findFieldsColumn();
 
-			if( CollectionUtils.isEmpty(pinkPojos) || pinkPojos.size() == 0 ) 
-				return null ;
-			else {
-				// 排序
-		        pinkPojos.sort((o1, o2) -> {
-					if (o1.getEmployee().compareTo(o2.getEmployee()) == 0) {
-						// 名稱相同  按照日期先後順序
-						return o1.getDate().compareTo(o2.getDate());
-					}
+		// 取得pink row的資料
+		List<PinkPojo> pinkPoJos = findPinkRow();
 
-					return o1.getEmployee().compareTo(o2.getEmployee());
-				});
-
-				// 回傳資料
-				return pinkPojos;
-			}
-		} else {
-			throw new StopProgramException("路徑底下有超過一個.xls的檔案. 請將多餘的檔案清除.");
+		if(CollectionUtils.isNotEmpty(pinkPoJos)) {
+			// 排序
+			pinkPoJos.sort(Comparator.comparing(PinkPojo::getEmployee)
+			 						 .thenComparing(PinkPojo::getDate));
 		}
 
+		// 回傳資料
+		return pinkPoJos;
 	}
 
 	/**
 	 * 尋找 日期、員工、上班、下班的欄位index 並且存到global variables
-	 * 
-	 * @param wb :
 	 */
-	public void findFieldsColumn(Workbook wb) {
-		
-		Sheet sheet = wb.getSheetAt(0);
-		int rowCountLast = getLastRowWithData(sheet); // rowCount 的最大值
+	private void findFieldsColumn() {
+		Sheet sheet = workBook.getSheetAt(0);
+		int rowCountLast = getLastRowWithData(sheet); // 取得WorkBook的Row數量
 
-		// loop through all rows
 		int countOfFind = 0;
-		for (int i = 0; i < rowCountLast; i++) {
-			
-			Row curRow = sheet.getRow(i);
+		for (int i = 0; i < rowCountLast; i++) { // loop from first row to last one
+			Row curRow = sheet.getRow(i);  // current row
 			if (curRow != null) {
-				int noOfColumns = curRow.getLastCellNum();
-				// loop through cells in a row
-				for (int j = 0; j < noOfColumns; j++) {
-					Cell curCell = curRow.getCell(j);
+				int noOfColumns = curRow.getLastCellNum(); // get cell num of row
+				for (int j = 0; j < noOfColumns; j++) {    // loop through cells in a row
+					Cell curCell = curRow.getCell(j);      // get current cell
 					if (curCell != null) {
 						// 找到日期
-						switch (getCellValue(wb, curCell)) {
+						switch (getCellValue(curCell)) {
 							case "日期":
 								countOfFind++;
 								setDateColumn(j);
-								// 取得body內容第一行位置, 因為日期合併兩格, 所以 + 2
+								// 取得body內容第一行位置, 因為日期合併上下兩格, 所以+2
 								setBodyStart(i + 2);
 								break;
 							case "員編-姓名":
@@ -125,77 +106,106 @@ public class HandlePink {
 	}
 
 	/**
-	 * 取得所有粉紅色列的資訊存到pinkPojos
-	 * @param workbook :
+	 * 取得所有粉紅色列的資訊存到pinkPoJos
 	 * @throws IOException :
 	 */
-	public List<PinkPojo> findPinkRow(Workbook workbook) throws IOException {
-		
-		List<PinkPojo> pinkPojos = new ArrayList<>();
-		Sheet sheet = workbook.getSheetAt(0);
+	public List<PinkPojo> findPinkRow() {
+		List<PinkPojo> pinkPoJos = new ArrayList<>();
+		Sheet sheet = workBook.getSheetAt(0);
 		int rowCountLast = getLastRowWithData(sheet); // rowCount 的最大值
-
 		for (int i = getBodyStart(); i < rowCountLast; i++) {
-			
-			// 判斷 1.粉紅色 && 2.至少上/下班任一有值
-			Short pinkValue = getPinkValue() ;
-
-			Row curRow = sheet.getRow(i);
+			Row curRow = sheet.getRow(i);   // get current row
 			if (curRow != null) {
-				
-				Cell firstCell = curRow.getCell(0);
-				if (firstCell != null) {
-					
-					CellStyle curCellStyle = firstCell.getCellStyle();
-					if (curCellStyle != null) {
-					
-						// 1. 是粉紅色
-						if (curCellStyle.getFillForegroundColor() == pinkValue) {
-							// 2. 上/ 下班有值
-							Cell onCell = curRow.getCell(getOnColumn());
-							Cell offCell = curRow.getCell(getOffColumn());
-							if (!getCellValue(workbook, onCell).equals("") || !getCellValue(workbook, offCell).equals("")) {
-								
-								String missContent = "";
-								if (getCellValue(workbook, onCell).equals(""))
-									missContent = "上班";
-								else if (getCellValue(workbook, offCell).equals(""))
-									missContent = "下班";
+				Cell onCell = curRow.getCell(getOnColumn());
+				Cell offCell = curRow.getCell(getOffColumn());
+				Cell employeeCell = curRow.getCell(getEmployeeColumn());
+				Cell dateCell = curRow.getCell(getDateColumn());
+				String dateVal = getCellValue(dateCell);
+				// 判斷 1.是六或者日
+				if (dateCell != null && isWeekend(dateVal)) {
+					// 至少上/下班任一有值
+					if ( !"".equals(getCellValue(onCell)) || !"".equals(getCellValue(offCell))) {
+						String missContent = "";
+						if ("".equals(getCellValue(onCell)))
+							missContent = "上班";
+						else if ("".equals(getCellValue(offCell)))
+							missContent = "下班";
 
-								Cell dateCell = curRow.getCell(getDateColumn());
-								Cell employeeCell = curRow.getCell(getEmployeeColumn());
-				
-								// create Entity 
-								PinkPojo pinkPojo = new PinkPojo(getCellValue(workbook, dateCell),
-										getCellValue(workbook, employeeCell), getCellValue(workbook, onCell),
-										getCellValue(workbook, offCell), missContent,
-										handleTime(getCellValue(workbook, onCell))[0], handleTime(getCellValue(workbook, onCell))[1],
-										handleTime(getCellValue(workbook, offCell))[0], handleTime(getCellValue(workbook, offCell))[1]);
-
-								// Add to list 
-								pinkPojos.add(pinkPojo);
-							}
-
-						}
+						PinkPojo pinkPojo = new PinkPojo();
+						pinkPojo.setDate(getCellValue(dateCell));
+						pinkPojo.setEmployee(getCellValue(employeeCell));
+						pinkPojo.setOnTime(getCellValue(onCell));
+						pinkPojo.setOffTime(getCellValue(offCell));
+						pinkPojo.setMissContent(missContent);
+						pinkPojo.setStartHour(handleTime(getCellValue(onCell))[0]);
+						pinkPojo.setStartMin(handleTime(getCellValue(onCell))[1]);
+						pinkPojo.setEndHour(handleTime(getCellValue(offCell))[0]);
+						pinkPojo.setEndMin(handleTime(getCellValue(offCell))[1]);
+						// Add to list
+						pinkPoJos.add(pinkPojo);
 					}
 				}
 			}
 		}
-		
-		if( CollectionUtils.isEmpty(pinkPojos) || pinkPojos.size() == 0 )
-			pinkPojos.clear() ;
-		
-		return pinkPojos ;
+
+		return pinkPoJos ;
 	}
-	
+
+	/**
+	 * 字串如果包含“六” or “日”，就回傳true
+	 * @param dateString
+	 * @return Boolean
+	 */
+	private boolean isWeekend(String dateString) {
+		return dateString.contains("六") || dateString.contains("日");
+	}
+
+	/**
+	 * 取得Cell的值, return一律轉為String
+	 *
+	 * @param cell:
+	 * @return :
+	 */
+	private String getCellValue(Cell cell) {
+
+		FormulaEvaluator evaluator = workBook.getCreationHelper().createFormulaEvaluator();
+
+		if (cell != null) {
+			switch (evaluator.evaluateInCell(cell).getCellType()) {
+				case STRING:
+					return cell.getStringCellValue();
+				case NUMERIC:
+					return String.valueOf(cell.getNumericCellValue());
+				case BOOLEAN:
+					System.out.println("目前沒有處理Excel裡面 BOOLEAN的欄位.");
+					break;
+				case ERROR:
+					System.out.println("目前沒有處理Excel裡面 ERROR的欄位.");
+					break;
+				case FORMULA:
+					System.out.println("目前沒有處理Excel裡面 FORMULA的欄位.");
+					break;
+				case _NONE:
+					System.out.println("目前沒有處理Excel裡面 _NONE的欄位.");
+					break;
+				default:
+					return "";
+			}
+		}
+
+		return "";
+	}
+
+	/**
+	 * Return hour and minute in String
+	 * @param time
+	 * @return Int Array
+	 */
 	public int[] handleTime(String time) {
 	
     	int[] ret_int = new int[2];
     	
-    	if(time.equals("")) { // 為空
-        	ret_int[0] = 0 ;
-        	ret_int[1] = 0 ;
-    	}else { // 不為空
+    	if(!time.equals("")) { // // 不為空
     		int index = time.indexOf(":") ;
     		
         	try {
@@ -207,67 +217,13 @@ public class HandlePink {
             	ret_int[0] = hour ;
             	
             }
-    		
-    		
+
         	ret_int[1] = Integer.parseInt(time.substring(index+1)) ;
     	}
 
 		return ret_int;
 	}
 
-	/**
-	 * 取得Cell的值, return一律轉為String
-	 * 
-	 * @param wb:
-	 * @param cell:
-	 * @return :
-	 */
-	public String getCellValue(Workbook wb, Cell cell) {
-
-		FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-
-		if (cell != null) {
-			switch (evaluator.evaluateInCell(cell).getCellType()) {
-			case BLANK:
-				return "";
-			case STRING:
-				return cell.getStringCellValue();
-			case NUMERIC:
-				return String.valueOf(cell.getNumericCellValue());
-			case BOOLEAN:
-				System.out.println("目前沒有處理Excel裡面 BOOLEAN的欄位.");
-				break;
-			case ERROR:
-				System.out.println("目前沒有處理Excel裡面 ERROR的欄位.");
-				break;
-			case FORMULA:
-				System.out.println("目前沒有處理Excel裡面 FORMULA的欄位.");
-				break;
-			case _NONE:
-				System.out.println("目前沒有處理Excel裡面 _NONE的欄位.");
-				break;
-			default:
-				return "";
-			}
-		}
-
-		return "";
-	}
-
-	
-	private short getPinkValue() throws IOException {
-		
-		// 取得Excel存放路徑 (和word 相同)
-		String pinkString = PropsHandler.getter("pinkValue");
-		
-		int value = Integer.parseInt(pinkString) ;
-
-		return (Short) (short) value;
-	}
-	
-	
-	
-	
 	// 取得最後一行index
 	public int getLastRowWithData(Sheet sheet) {
 		int rowCount = 0;
@@ -286,20 +242,9 @@ public class HandlePink {
 	// 判斷row or cell 空
 	public boolean isRowBlank(Row r) {
 		boolean ret = true;
-
-		/*
-		 * If a row is null, it must be blank.
-		 */
 		if (r != null) {
 			Iterator<Cell> cellIter = r.cellIterator();
-			/*
-			 * Iterate through all cells in a row.
-			 */
 			while (cellIter.hasNext()) {
-				/*
-				 * If one of the cells in given row contains data, the row is considered not
-				 * blank.
-				 */
 				if (!isCellBlank(cellIter.next())) {
 					ret = false;
 					break;
@@ -312,47 +257,6 @@ public class HandlePink {
 
 	public boolean isCellBlank(Cell c) {
 		return (c == null || c.getCellType() == CellType.BLANK);
-	}
-
-	// Getter and Setter
-	public int getDateColumn() {
-		return dateColumn;
-	}
-
-	public void setDateColumn(int dateColumn) {
-		this.dateColumn = dateColumn;
-	}
-
-	public int getEmployeeColumn() {
-		return employeeColumn;
-	}
-
-	public void setEmployeeColumn(int employeeColumn) {
-		this.employeeColumn = employeeColumn;
-	}
-
-	public int getOnColumn() {
-		return onColumn;
-	}
-
-	public void setOnColumn(int onColumn) {
-		this.onColumn = onColumn;
-	}
-
-	public int getOffColumn() {
-		return offColumn;
-	}
-
-	public void setOffColumn(int offColumn) {
-		this.offColumn = offColumn;
-	}
-
-	public int getBodyStart() {
-		return bodyStart;
-	}
-
-	public void setBodyStart(int bodyStart) {
-		this.bodyStart = bodyStart;
 	}
 
 }
