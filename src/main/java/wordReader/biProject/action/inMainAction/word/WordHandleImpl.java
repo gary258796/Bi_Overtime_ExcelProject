@@ -42,8 +42,7 @@ public class WordHandleImpl implements WordHandle{
                                      .thenComparing(DataPojo::getName)
                                      .thenComparing(DataPojo::getRestOrMoney)
                                      .thenComparing(DataPojo::getStartDay));
-        }else
-            throw new StopProgramException( wordsPath + "底下沒有成功取得至少一筆Word資料! 請確認該路徑底下有加班單資訊的word文件們.") ;
+        }
 
         return stackList ;
     }

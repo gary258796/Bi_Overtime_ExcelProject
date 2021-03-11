@@ -1,6 +1,5 @@
 package wordReader.biProject;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 import wordReader.biProject.action.afterMainAction.AfterMain;
@@ -8,6 +7,7 @@ import wordReader.biProject.action.afterMainAction.AfterMainImpl;
 import wordReader.biProject.action.beforeMainAction.BeforeMain;
 import wordReader.biProject.action.beforeMainAction.BeforeMainImpl;
 import wordReader.biProject.action.inMainAction.excel.HandlePink;
+import wordReader.biProject.cusError.StopProgramException;
 import wordReader.biProject.model.DataPojo;
 import wordReader.biProject.model.PinkPojo;
 import wordReader.biProject.util.PropsHandler;
@@ -45,7 +45,7 @@ public class App
 		// 加班單彙整的資料
 		List<DataPojo> dataPoJos;
 		// 儲存從Excel取得的震旦雲打卡資料
-		List<PinkPojo> pinkPoJos = new ArrayList<>();
+		List<PinkPojo> pinkPoJos;
 		try {
     		// 取得加班單資料,並且計算完加班單裡面沒有的欄位資訊,無法成功獲取的word會放入到指定路徑底下
 			dataPoJos = wordHandle.returnAllWordData();
@@ -53,12 +53,12 @@ public class App
     		pinkPoJos = handlePink.handlePinkExcel();
 		} catch (Exception e) {
 			throw new Exception(e.getMessage()) ;
-		}  finally {
-    		// 檢查pinkPoJos是否是空的，空的代表說設定之粉紅顏色參數有誤
-	    	if( CollectionUtils.isEmpty(pinkPoJos) || pinkPoJos.size() == 0 )
-	    		// TODO: 到時候不會抓取很紅色
-	    		System.out.println("抓取不到任何震旦雲原檔假日資料,可能是因為這個excel粉紅色欄位index不是59.");
 		}
+
+		if( CollectionUtils.isEmpty(dataPoJos))
+		    throw new StopProgramException("沒有成功取得至少一筆Word資料! 請確認該路徑底下有加班單資訊的word文件們.") ;
+		if( CollectionUtils.isEmpty(pinkPoJos) ) // TODO: 到時候不會抓取很紅色
+			System.out.println("抓取不到任何震旦雲原檔假日資料,可能是因為這個excel粉紅色欄位index不是59.");
 
     	// 將準備好的資料寫到 excel , Excel Writer 負責 呈現的部分
 		afterMain.finalProcess(pinkPoJos, dataPoJos);
