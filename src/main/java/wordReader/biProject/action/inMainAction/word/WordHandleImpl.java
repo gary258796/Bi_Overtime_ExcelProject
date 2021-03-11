@@ -32,9 +32,8 @@ public class WordHandleImpl implements WordHandle{
         for( File aFile: files ) {
             // 取得 word 裡面資料 並處理一些計算的部分
             DataPojo readyDataPojo = WordReader.readWord2007Docx(wordsPath+aFile.getName()) ;
-            // 如果不為null 初始化其中一些欄位（稍後靠PinkPojo資料對應輸入)
-            if( readyDataPojo != null )
-                stackList.add(readyDataPojo) ;
+            // 如果不為null加到stackList
+            if( readyDataPojo != null ) stackList.add(readyDataPojo) ;
         }
 
         // 將 stackList 排序, 部門 > 名稱 > 使用方式 > 日期
