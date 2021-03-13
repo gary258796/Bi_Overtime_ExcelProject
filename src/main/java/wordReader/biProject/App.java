@@ -57,8 +57,8 @@ public class App
 
 		if( CollectionUtils.isEmpty(dataPoJos))
 		    throw new StopProgramException("沒有成功取得至少一筆Word資料! 請確認該路徑底下有加班單資訊的word文件們.") ;
-		if( CollectionUtils.isEmpty(pinkPoJos) ) // TODO: 到時候不會抓取很紅色
-			System.out.println("抓取不到任何震旦雲原檔假日資料,可能是因為這個excel粉紅色欄位index不是59.");
+		if( CollectionUtils.isEmpty(pinkPoJos) )
+			throw new StopProgramException("抓取不到任何震旦雲原檔假日資料") ;
 
     	// 將準備好的資料寫到 excel , Excel Writer 負責 呈現的部分
 		afterMain.finalProcess(pinkPoJos, dataPoJos);

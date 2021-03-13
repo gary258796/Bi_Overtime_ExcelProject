@@ -13,7 +13,7 @@ public class Start {
 		try {
 			startApp.main();
 		} catch (Exception e) {
-			System.out.println( e.getMessage());
+			System.out.println( "停止原因: " + e.getMessage());
 		}
 
 	}
