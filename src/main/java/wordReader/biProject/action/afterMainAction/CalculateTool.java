@@ -39,24 +39,18 @@ public class CalculateTool {
         return cleanString(ret_Str) ;
     }
 
-
     /**
      * 看日期是否為星期天
-     * @param bDate :
+     * @param checkDate :
      * @return
      * @throws ParseException
      */
-    public static boolean isSunday(String bDate) throws ParseException {
-
+    public static boolean isSunday(String checkDate) throws ParseException {
         DateFormat format1 = new SimpleDateFormat("yyyy/MM/dd");
-        Date bdate = format1.parse(bDate);
+        Date formatCheckDate = format1.parse(checkDate);  // 先將日期轉換格式
         Calendar cal = Calendar.getInstance();
-        cal.setTime(bdate);
-        if( cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {
-            return true ;
-        }
-
-        return false ;
+        cal.setTime(formatCheckDate); // 使用 Calender提供的方法，驗證是否為星期天
+        return cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY;
     }
 
     /**
@@ -68,14 +62,10 @@ public class CalculateTool {
      * @return
      */
     public static int calDifferTime(int startHour, int startMin, int endHour, int endMin) {
-
         Time start = new Time(startHour, startMin) ;
         Time end = new Time(endHour, endMin) ;
-
         Time differTime = Time.diffTime(start, end);
-
         return differTime.getHours() * 60 + differTime.getMinutes() ;
-
     }
 
     private static String cleanString(String unCleanString) {
