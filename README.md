@@ -1,12 +1,15 @@
-Overtime Excel Project
+Overtime Excel Project -
+Due to the reason that this project is for , the code is super related to the format of the company's overtime apply word.
+    So it's definitely too customized for the code to be reuse on other projects.
 
-Use of techniques:
+Used techniques:
 
     Main : 
-        Java - Apache poi 
-        Maven 
+        Languages: Java 
+        Main Libraries: Apache poi 
+        Build tools: Maven 
     
-Inside src/main/resources/application.properties, defined where the external property file is.
+Inside 'src/main/resources/application.properties', we defined where the external property file is.
 The external property file contains multi parameters that our program need,
 such as:   
     
@@ -14,11 +17,7 @@ such as:
     Our input datas path and output file path 
     ...   
 
-
-
-This project is for:
- 1. using java to generate overtime excel instead of by hand in order to decrease spending time on.
- 2. practice using apache poi and maven for myself. 
- 3. Due to the reason that this project is for , the code is super related to the format of the company's overtime apply word.
-    So it's definitely too customized for the code to be reuse on other projects. 
+This project was create for:
+ 1. Using java to do I/O from overtime word files and generate overtime excel instead of by hand in order to decrease spending time on.
+ 2. Practice while learning apache poi and maven for myself. 
  
