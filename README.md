@@ -1,15 +1,14 @@
-Overtime Excel Project -
-Due to the reason that this project is for , the code is super related to the format of the company's overtime apply word.
-    So it's definitely too customized for the code to be reuse on other projects.
+<h1>Overtime Excel Project</h1>
 
-Used techniques:
-
+Due to the reason that this project is for , the code is super related to the format of the company's overtime apply word.  
+    So it's definitely too customized for the code to be re-use on other projects.
+## Used techniques
     Main : 
         Languages: Java 
         Main Libraries: Apache poi 
         Build tools: Maven 
     
-Inside 'src/main/resources/application.properties', we defined where the external property file is.
+Inside 'src/main/resources/application.properties', we defined where the external property file is.  
 The external property file contains multi parameters that our program need,
 such as:   
     
